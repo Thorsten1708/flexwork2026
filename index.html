@@ -392,7 +392,7 @@ const db = firebase.firestore();
 let isUnlocked = false;
 let isSaving = false; // Flag: verhindert Re-render durch eigenen Snapshot
 const CORRECT_PIN = '2026';
-const APP_VERSION = '1.9';
+const APP_VERSION = '2.0';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -678,7 +678,7 @@ function renderQualiRounds() {
       const tableWrap = document.createElement('div');
       tableWrap.className = 'table-scroll';
       const table = document.createElement('table');
-      table.innerHTML = `<thead><tr><th class="col-spieler">Spieler</th><th class="col-score">Netto</th><th class="col-score">Brutto</th></tr></thead>`;
+      table.innerHTML = `<thead><tr><th class="col-spieler">Spieler</th><th class="col-score">Netto</th><th class="col-score" style="width:20%">Gew.</th><th class="col-score">Brutto</th></tr></thead>`;
       const tbody = document.createElement('tbody');
       tbody.id = `quali-tbody-${ri}`;
       table.appendChild(tbody);
@@ -725,13 +725,26 @@ function renderQualiRounds() {
       const effB = effective[pi].effBrutto[ri] !== undefined ? effective[pi].effBrutto[ri] : round.brutto[pi];
       const tr = document.createElement('tr');
       if (isStruck) tr.classList.add('struck');
-      // Zeige Ersatz-Wert statt 0, Input bleibt auf echtem Wert
       const nettoDisplay = isErsatz
-        ? `<span class="score-val"><input type="number" min="0" max="99" value="${round.netto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="netto"> <span class="ersatz-val">(${effN})</span></span>`
+        ? `<span class="score-val"><input type="number" min="0" max="99" value="${round.netto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="netto"></span>`
         : `<span class="score-val"><input type="number" min="0" max="99" value="${round.netto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="netto"></span>`;
       const bruttoDisplay = isErsatz
-        ? `<span class="score-val"><input type="number" min="0" max="99" value="${round.brutto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="brutto"> <span class="ersatz-val">(${effB})</span></span>`
+        ? `<span class="score-val"><input type="number" min="0" max="99" value="${round.brutto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="brutto"></span>`
         : `<span class="score-val"><input type="number" min="0" max="99" value="${round.brutto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="brutto"></span>`;
+
+      // GEW.-Spalte: zeigt den tatsächlich gewerteten Wert
+      let gewNetto, gewStyle;
+      if (isStruck) {
+        gewNetto = '—';
+        gewStyle = 'color:#999;text-decoration:line-through;';
+      } else if (isErsatz) {
+        gewNetto = `<span style="color:#ff9800;font-weight:700;">${effN}</span>`;
+        gewStyle = '';
+      } else {
+        gewNetto = `<strong>${round.netto[pi]}</strong>`;
+        gewStyle = '';
+      }
+
       tr.innerHTML = `
         <td class="col-spieler">
           <span class="player-name">${player}</span>
@@ -740,6 +753,7 @@ function renderQualiRounds() {
           ${isErsatz && isStruck ? '<span class="ersatz-badge">Ersatz</span>' : ''}
         </td>
         <td class="col-score">${nettoDisplay}</td>
+        <td class="col-score col-netto" style="${gewStyle}">${gewNetto}</td>
         <td class="col-score">${bruttoDisplay}</td>
       `;
       tbody.appendChild(tr);
