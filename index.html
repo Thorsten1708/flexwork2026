@@ -287,7 +287,6 @@
           <th class="col-brutto">Quali Brutto gew.</th>
           <th class="col-brutto">Endrunde Brutto ×2</th>
           <th class="col-brutto">Gesamt Brutto</th>
-          <th class="col-combined">Brutto+Netto</th>
         </tr>
       </thead>
       <tbody id="tbody-gesamtergebnis"></tbody>
@@ -306,7 +305,7 @@
   <div id="quali-rounds"></div>
 
   <!-- Quali Zusammenfassung -->
-  <div class="card" style="margin-top:8px;">
+  <div class="card gesamt-desktop" style="margin-top:8px;">
     <div class="card-header" style="background:#1a1a1a;">
       <span class="round-name">Qualifikation – Zusammenfassung</span>
     </div>
@@ -320,14 +319,14 @@
           <th class="col-netto">Netto gewertet</th>
           <th class="col-brutto">Brutto gesamt</th>
           <th class="col-brutto">Brutto gewertet</th>
-          <th class="col-combined">Brutto+Netto</th>
-          <th class="col-gesamt-netto">Platz Netto</th>
+          <th class="col-gesamt-netto">Platz</th>
         </tr>
       </thead>
       <tbody id="tbody-quali-summary"></tbody>
     </table>
     </div>
   </div>
+  <div class="gesamt-mobile" id="quali-summary-mobile"></div>
 </section>
 
 <!-- ENDRUNDE -->
@@ -350,7 +349,6 @@
           <th>Spieler</th>
           <th class="col-netto">Netto gesamt</th>
           <th class="col-brutto">Brutto gesamt</th>
-          <th class="col-combined">Brutto+Netto</th>
         </tr>
       </thead>
       <tbody id="tbody-final-summary"></tbody>
@@ -378,7 +376,7 @@ const db = firebase.firestore();
 let isUnlocked = false;
 let isSaving = false; // Flag: verhindert Re-render durch eigenen Snapshot
 const CORRECT_PIN = '2026';
-const APP_VERSION = '1.7';
+const APP_VERSION = '1.8';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -731,15 +729,51 @@ function renderQualiSummary(qualiData) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><span class="player-name">${player}</span></td>
-      <td>${d.nettoTotal}</td>
+      <td class="col-netto">${d.nettoTotal}</td>
       <td style="color:var(--red);font-weight:600;">${d.streichNetto}</td>
-      <td><strong>${d.nettoGewertet}</strong></td>
-      <td>${d.bruttoTotal}</td>
-      <td><strong>${d.bruttoGewertet}</strong></td>
-      <td><strong>${d.combined}</strong></td>
-      <td class="platz-cell">${medal}</td>
+      <td class="col-netto"><strong>${d.nettoGewertet}</strong></td>
+      <td class="col-brutto">${d.bruttoTotal}</td>
+      <td class="col-brutto"><strong>${d.bruttoGewertet}</strong></td>
+      <td class="col-gesamt-netto platz-cell">${medal}</td>
     `;
     tbody.appendChild(tr);
+  });
+
+  // Mobile Karten
+  const mobile = document.getElementById('quali-summary-mobile');
+  mobile.innerHTML = '';
+  const sorted = PLAYERS.map((p, pi) => ({player: p, pi, rank: ranks[pi], ...qualiData[pi]}))
+    .sort((a, b) => a.rank - b.rank);
+  sorted.forEach(d => {
+    const medal = MEDALS[d.rank - 1] || d.rank + '.';
+    const rankClass = d.rank <= 3 ? `rank-${d.rank}` : '';
+    const div = document.createElement('div');
+    div.className = `gesamt-card ${rankClass}`;
+    div.innerHTML = `
+      <div class="gesamt-card-header">
+        <span class="gesamt-medal">${medal}</span>
+        <span class="gesamt-player">${d.player}</span>
+        <span class="gesamt-main-score">${d.nettoGewertet} <small>Netto gew.</small></span>
+      </div>
+      <div class="gesamt-card-body">
+        <div class="gesamt-row col-netto-bg">
+          <span>Netto gespielt</span><strong>${d.nettoTotal}</strong>
+        </div>
+        <div class="gesamt-row" style="background:#ffe0e0;">
+          <span style="color:#990000;">Streicher</span><strong style="color:#CC0000;">${d.streichNetto}</strong>
+        </div>
+        <div class="gesamt-row col-gesamt-bg">
+          <span>Netto gewertet</span><strong>${d.nettoGewertet}</strong>
+        </div>
+        <div class="gesamt-row col-brutto-bg">
+          <span>Brutto gespielt</span><strong>${d.bruttoTotal}</strong>
+        </div>
+        <div class="gesamt-row col-brutto-bg">
+          <span>Brutto gewertet</span><strong>${d.bruttoGewertet}</strong>
+        </div>
+      </div>
+    `;
+    mobile.appendChild(div);
   });
 }
 
@@ -751,9 +785,8 @@ function renderFinalSummary(finalData) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><span class="player-name">${player}</span></td>
-      <td><strong>${d.netto}</strong></td>
-      <td><strong>${d.brutto}</strong></td>
-      <td><strong>${d.combined}</strong></td>
+      <td class="col-netto"><strong>${d.netto}</strong></td>
+      <td class="col-brutto"><strong>${d.brutto}</strong></td>
     `;
     tbody.appendChild(tr);
   });
@@ -780,7 +813,6 @@ function renderGesamt(gesamtData) {
       <td class="col-brutto">${d.qualiBrutto}</td>
       <td class="col-brutto">${d.finalBrutto * 2} <small style="color:var(--muted)">(${d.finalBrutto}×2)</small></td>
       <td class="col-brutto"><strong>${d.gesamtBrutto}</strong></td>
-      <td class="col-combined"><strong>${d.combined}</strong></td>
     `;
     tbody.appendChild(tr);
   });
@@ -817,9 +849,6 @@ function renderGesamt(gesamtData) {
         </div>
         <div class="gesamt-row col-brutto-bg">
           <span>Gesamt Brutto</span><strong>${d.gesamtBrutto}</strong>
-        </div>
-        <div class="gesamt-row col-combined-bg">
-          <span>Brutto+Netto</span><strong>${d.combined}</strong>
         </div>
       </div>
     `;
