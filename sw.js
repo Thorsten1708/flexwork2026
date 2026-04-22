@@ -1,4 +1,4 @@
-const CACHE = 'mfw2026-v8';
+const CACHE = 'mfw2026-v9';
 const ASSETS = [
   '/flexwork2026/',
   '/flexwork2026/index.html',

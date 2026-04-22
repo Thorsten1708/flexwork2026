@@ -154,6 +154,22 @@
     margin-left: 6px;
     vertical-align: middle;
   }
+  .ersatz-badge {
+    display: inline-block;
+    background: #ff9800;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .ersatz-val {
+    font-size: 12px;
+    color: #ff9800;
+    font-weight: 600;
+  }
   .info-box {
     background: #fff8f8;
     border: 1px solid #ffcccc;
@@ -376,7 +392,7 @@ const db = firebase.firestore();
 let isUnlocked = false;
 let isSaving = false; // Flag: verhindert Re-render durch eigenen Snapshot
 const CORRECT_PIN = '2026';
-const APP_VERSION = '1.8';
+const APP_VERSION = '1.9';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -497,59 +513,103 @@ function isRoundPlayed(round) {
   return round.netto.some(v => v > 0);
 }
 
-// For each player, find the index of their worst netto among played rounds
-// Returns array of length = qualiRounds.length, value = true if that round is the streicher for that player
-function getStreichers() {
-  const playedIndices = state.qualiRounds
-    .map((r, i) => isRoundPlayed(r) ? i : -1)
-    .filter(i => i >= 0);
-
-  // For each player, find the round index with the minimum netto among played rounds
-  return PLAYERS.map((_, pi) => {
-    if (playedIndices.length === 0) return -1;
-    let minVal = Infinity;
-    let minIdx = playedIndices[0];
-    for (const ri of playedIndices) {
-      const v = state.qualiRounds[ri].netto[pi];
-      if (v < minVal) { minVal = v; minIdx = ri; }
-    }
-    return minIdx;
-  });
+// Für einen Spieler in einer Runde: Ersatz-Wert = schlechtestes Netto/Brutto der anderen
+function getErsatzNetto(ri, pi) {
+  const others = PLAYERS.map((_, i) => i).filter(i => i !== pi);
+  const vals = others.map(i => state.qualiRounds[ri].netto[i]).filter(v => v > 0);
+  if (vals.length === 0) return 0;
+  return Math.min(...vals);
+}
+function getErsatzBrutto(ri, pi) {
+  const others = PLAYERS.map((_, i) => i).filter(i => i !== pi);
+  const vals = others.map(i => state.qualiRounds[ri].brutto[i]).filter(v => v > 0);
+  if (vals.length === 0) return 0;
+  return Math.min(...vals);
 }
 
-function calcQuali() {
-  const streichers = getStreichers(); // per player: round index that is struck
+// Gibt für jeden Spieler zurück:
+// - effektiveNetto[ri]: der tatsächlich verwendete Netto-Wert (echt oder Ersatz)
+// - effektiveBrutto[ri]: der tatsächlich verwendete Brutto-Wert
+// - istErsatz[ri]: true wenn Ersatz
+// - streichRoundIdx: Index der gestrichenen Runde
+function getEffectiveValues() {
   const playedIndices = state.qualiRounds
     .map((r, i) => isRoundPlayed(r) ? i : -1)
     .filter(i => i >= 0);
 
   return PLAYERS.map((_, pi) => {
-    let nettoTotal = 0, nettoGewertet = 0;
-    let bruttoTotal = 0, bruttoGewertet = 0;
-    let streichNetto = 0, streichBrutto = 0;
+    const effNetto = {};
+    const effBrutto = {};
+    const istErsatz = {};
 
     for (const ri of playedIndices) {
       const n = state.qualiRounds[ri].netto[pi];
-      const b = state.qualiRounds[ri].brutto[pi];
-      nettoTotal += n;
-      bruttoTotal += b;
-      if (ri === streichers[pi]) {
-        streichNetto = n;
-        streichBrutto = b;
+      if (n > 0) {
+        effNetto[ri] = n;
+        effBrutto[ri] = state.qualiRounds[ri].brutto[pi];
+        istErsatz[ri] = false;
+      } else {
+        effNetto[ri] = getErsatzNetto(ri, pi);
+        effBrutto[ri] = getErsatzBrutto(ri, pi);
+        istErsatz[ri] = true;
       }
     }
-    nettoGewertet = nettoTotal - streichNetto;
-    bruttoGewertet = bruttoTotal - streichBrutto;
+
+    // Streicher-Logik:
+    // Gibt es Ersatz-Runden? → Streicher ist der schlechteste (niedrigste) Ersatz
+    // Keine Ersatz-Runden? → Streicher ist das schlechteste eigene Ergebnis
+    const ersatzIndices = playedIndices.filter(ri => istErsatz[ri]);
+    let streichRoundIdx = -1;
+
+    if (ersatzIndices.length > 0) {
+      // Schlechtester (niedrigster) Ersatz-Netto-Wert
+      let minVal = Infinity;
+      for (const ri of ersatzIndices) {
+        if (effNetto[ri] < minVal) { minVal = effNetto[ri]; streichRoundIdx = ri; }
+      }
+    } else if (playedIndices.length > 0) {
+      // Kein Ersatz → schlechtestes eigenes Ergebnis
+      let minVal = Infinity;
+      for (const ri of playedIndices) {
+        if (effNetto[ri] < minVal) { minVal = effNetto[ri]; streichRoundIdx = ri; }
+      }
+    }
+
+    return { effNetto, effBrutto, istErsatz, streichRoundIdx, playedIndices };
+  });
+}
+
+function getStreichers() {
+  return getEffectiveValues().map(d => d.streichRoundIdx);
+}
+
+function calcQuali() {
+  const effective = getEffectiveValues();
+  return PLAYERS.map((_, pi) => {
+    const d = effective[pi];
+    let nettoTotal = 0, bruttoTotal = 0;
+    let streichNetto = 0, streichBrutto = 0;
+
+    for (const ri of d.playedIndices) {
+      nettoTotal += d.effNetto[ri];
+      bruttoTotal += d.effBrutto[ri];
+      if (ri === d.streichRoundIdx) {
+        streichNetto = d.effNetto[ri];
+        streichBrutto = d.effBrutto[ri];
+      }
+    }
 
     return {
       nettoTotal,
       streichNetto,
-      nettoGewertet,
+      nettoGewertet: nettoTotal - streichNetto,
       bruttoTotal,
       streichBrutto,
-      bruttoGewertet,
-      combined: nettoGewertet + bruttoGewertet,
-      streichRoundIdx: streichers[pi],
+      bruttoGewertet: bruttoTotal - streichBrutto,
+      streichRoundIdx: d.streichRoundIdx,
+      istErsatz: d.istErsatz,
+      effNetto: d.effNetto,
+      effBrutto: d.effBrutto,
     };
   });
 }
@@ -657,17 +717,30 @@ function renderQualiRounds() {
     // Tbody aktualisieren
     const tbody = document.getElementById(`quali-tbody-${ri}`);
     tbody.innerHTML = '';
+    const effective = getEffectiveValues();
     PLAYERS.forEach((player, pi) => {
       const isStruck = isRoundPlayed(round) && streichers[pi] === ri;
+      const isErsatz = effective[pi].istErsatz[ri] === true;
+      const effN = effective[pi].effNetto[ri] !== undefined ? effective[pi].effNetto[ri] : round.netto[pi];
+      const effB = effective[pi].effBrutto[ri] !== undefined ? effective[pi].effBrutto[ri] : round.brutto[pi];
       const tr = document.createElement('tr');
       if (isStruck) tr.classList.add('struck');
+      // Zeige Ersatz-Wert statt 0, Input bleibt auf echtem Wert
+      const nettoDisplay = isErsatz
+        ? `<span class="score-val"><input type="number" min="0" max="99" value="${round.netto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="netto"> <span class="ersatz-val">(${effN})</span></span>`
+        : `<span class="score-val"><input type="number" min="0" max="99" value="${round.netto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="netto"></span>`;
+      const bruttoDisplay = isErsatz
+        ? `<span class="score-val"><input type="number" min="0" max="99" value="${round.brutto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="brutto"> <span class="ersatz-val">(${effB})</span></span>`
+        : `<span class="score-val"><input type="number" min="0" max="99" value="${round.brutto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="brutto"></span>`;
       tr.innerHTML = `
         <td class="col-spieler">
           <span class="player-name">${player}</span>
           ${isStruck ? '<span class="streicher-badge">Streicher</span>' : ''}
+          ${isErsatz && !isStruck ? '<span class="ersatz-badge">Ersatz</span>' : ''}
+          ${isErsatz && isStruck ? '<span class="ersatz-badge">Ersatz</span>' : ''}
         </td>
-        <td class="col-score"><span class="score-val"><input type="number" min="0" max="99" value="${round.netto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="netto"></span></td>
-        <td class="col-score"><span class="score-val"><input type="number" min="0" max="99" value="${round.brutto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="brutto"></span></td>
+        <td class="col-score">${nettoDisplay}</td>
+        <td class="col-score">${bruttoDisplay}</td>
       `;
       tbody.appendChild(tr);
     });
