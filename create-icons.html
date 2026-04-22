@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head><title>Icon Generator</title></head>
+<body>
+<canvas id="c192" width="192" height="192"></canvas>
+<canvas id="c512" width="512" height="512"></canvas>
+<br>
+<a id="dl192" download="icon-192.png">Download icon-192.png</a><br>
+<a id="dl512" download="icon-512.png">Download icon-512.png</a>
+<script>
+function drawIcon(canvas) {
+  const ctx = canvas.getContext('2d');
+  const s = canvas.width;
+  // Background
+  ctx.fillStyle = '#CC0000';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, s, s, s * 0.18);
+  ctx.fill();
+  // DB text
+  ctx.fillStyle = 'white';
+  ctx.font = `bold ${s * 0.38}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('DB', s / 2, s * 0.38);
+  // Subtext
+  ctx.font = `bold ${s * 0.13}px Arial`;
+  ctx.fillText('FlexWork', s / 2, s * 0.65);
+  // Golf ball emoji area
+  ctx.font = `${s * 0.18}px Arial`;
+  ctx.fillText('⛳', s / 2, s * 0.85);
+}
+
+['c192','c512'].forEach(id => {
+  const canvas = document.getElementById(id);
+  drawIcon(canvas);
+});
+
+document.getElementById('dl192').href = document.getElementById('c192').toDataURL('image/png');
+document.getElementById('dl512').href = document.getElementById('c512').toDataURL('image/png');
+</script>
+</body>
+</html>
