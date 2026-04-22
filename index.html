@@ -392,7 +392,7 @@ const db = firebase.firestore();
 let isUnlocked = false;
 let isSaving = false; // Flag: verhindert Re-render durch eigenen Snapshot
 const CORRECT_PIN = '2026';
-const APP_VERSION = '2.0';
+const APP_VERSION = '2.1';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -750,7 +750,6 @@ function renderQualiRounds() {
           <span class="player-name">${player}</span>
           ${isStruck ? '<span class="streicher-badge">Streicher</span>' : ''}
           ${isErsatz && !isStruck ? '<span class="ersatz-badge">Ersatz</span>' : ''}
-          ${isErsatz && isStruck ? '<span class="ersatz-badge">Ersatz</span>' : ''}
         </td>
         <td class="col-score">${nettoDisplay}</td>
         <td class="col-score col-netto" style="${gewStyle}">${gewNetto}</td>
