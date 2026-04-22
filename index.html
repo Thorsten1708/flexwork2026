@@ -34,23 +34,27 @@
   header {
     background: var(--red);
     color: white;
-    padding: 20px 24px;
+    padding: 12px 16px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    flex-wrap: nowrap;
   }
   header .logo {
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 700;
     letter-spacing: -1px;
     background: white;
     color: var(--red);
-    padding: 4px 10px;
+    padding: 4px 8px;
     border-radius: 4px;
+    flex-shrink: 0;
   }
-  header h1 { font-size: 22px; font-weight: 600; }
-  header p { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+  header .header-title { flex: 1; min-width: 0; }
+  header h1 { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  header p { font-size: 11px; opacity: 0.85; margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
   main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
   section { margin-bottom: 36px; }
   .section-title {
@@ -202,16 +206,18 @@
 <body>
 <header>
   <div class="logo">DB</div>
-  <div>
+  <div class="header-title">
     <h1>Meeting@FlexWork 2026</h1>
     <p>Golf Turnier Wertung</p>
   </div>
-  <div class="firebase-status">
-    <div class="status-dot loading" id="statusDot"></div>
-    <span id="statusText">Verbinde…</span>
+  <div class="header-right">
+    <div class="firebase-status">
+      <div class="status-dot loading" id="statusDot"></div>
+      <span id="statusText">…</span>
+    </div>
+    <div style="font-size:11px;opacity:0.6;">v<span id="appVersion"></span></div>
+    <button class="lock-btn" id="lockBtn" onclick="toggleLock()">🔒</button>
   </div>
-  <div style="margin-left:8px;font-size:11px;opacity:0.6;">v<span id="appVersion"></span></div>
-  <button class="lock-btn" id="lockBtn" onclick="toggleLock()">🔒</button>
 </header>
 <main>
 
@@ -324,7 +330,7 @@ const db = firebase.firestore();
 let isUnlocked = false;
 let isSaving = false; // Flag: verhindert Re-render durch eigenen Snapshot
 const CORRECT_PIN = '2026';
-const APP_VERSION = '1.4';
+const APP_VERSION = '1.5';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -362,7 +368,7 @@ function setStatus(state) {
     txt.textContent = 'Live';
   } else {
     dot.className = 'status-dot loading';
-    txt.textContent = 'Verbinde…';
+    txt.textContent = '…';
   }
 }
 
