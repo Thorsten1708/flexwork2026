@@ -210,6 +210,7 @@
     <div class="status-dot loading" id="statusDot"></div>
     <span id="statusText">Verbinde…</span>
   </div>
+  <div style="margin-left:8px;font-size:11px;opacity:0.6;">v<span id="appVersion"></span></div>
   <button class="lock-btn" id="lockBtn" onclick="toggleLock()">🔒</button>
 </header>
 <main>
@@ -321,7 +322,9 @@ const db = firebase.firestore();
 
 // ---- PIN / LOCK STATE ----
 let isUnlocked = false;
+let isSaving = false; // Flag: verhindert Re-render durch eigenen Snapshot
 const CORRECT_PIN = '2026';
+const APP_VERSION = '1.4';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -396,8 +399,10 @@ const DEFAULT_STATE = {
 
 // ---- FIRESTORE PERSISTENCE ----
 function saveState() {
+  isSaving = true;
   db.collection('tournaments').doc('mfw2026').set(state)
-    .catch(err => console.error('Firestore save error:', err));
+    .then(() => { setTimeout(() => { isSaving = false; }, 1000); })
+    .catch(err => { console.error('Firestore save error:', err); isSaving = false; });
 }
 
 function loadState(data) {
@@ -422,12 +427,9 @@ let state = {
 db.collection('tournaments').doc('mfw2026').onSnapshot(
   (doc) => {
     setStatus('connected');
+    // Eigenen Snapshot ignorieren – verhindert Fokusverlust beim Tippen
+    if (isSaving) return;
     state = loadState(doc.exists ? doc.data() : null);
-    // Nicht neu rendern wenn ein Text-Input gerade fokussiert ist (verhindert Fokusverlust)
-    const active = document.activeElement;
-    if (active && active.tagName === 'INPUT' && active.type === 'text') {
-      return;
-    }
     recalcAndRender();
   },
   (err) => {
@@ -774,6 +776,9 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.log('SW registration failed:', err));
   });
 }
+
+// Versionsnummer anzeigen
+document.getElementById('appVersion').textContent = APP_VERSION;
 </script>
 </body>
 </html>
