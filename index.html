@@ -160,10 +160,28 @@
   .gesamtergebnis-table .rank-1 td { background: #fffbe6; }
   .gesamtergebnis-table .rank-2 td { background: #f8f8f8; }
   .gesamtergebnis-table .rank-3 td { background: #fff5ee; }
+
+  /* Spalten-Hervorhebung: Netto = gelb, Gesamt Netto = kräftiges Gold */
+  th.col-netto { background: #fff3cd !important; color: #7a5c00 !important; }
+  th.col-gesamt-netto { background: #f0a500 !important; color: #fff !important; font-size: 13px; }
+  th.col-brutto { background: #e8f4e8 !important; color: #2d6a2d !important; }
+  th.col-combined { background: #e8eaf6 !important; color: #3949ab !important; }
+  td.col-netto { background: #fffdf0; }
+  td.col-gesamt-netto { background: #fff3cd; font-weight: 700; font-size: 15px; color: #7a5c00; }
+  td.col-brutto { background: #f4fbf4; }
+  td.col-combined { background: #f0f2ff; }
+  /* Rang-Zeilen überschreiben Spaltenfarbe für Gesamt-Netto */
+  tr.rank-1 td.col-gesamt-netto { background: #ffd700 !important; color: #5a3e00 !important; }
+  tr.rank-2 td.col-gesamt-netto { background: #ffe066 !important; color: #7a5c00 !important; }
+  tr.rank-3 td.col-gesamt-netto { background: #ffe8a0 !important; color: #7a5c00 !important; }
+
+  /* Horizontales Scrollen für Tabellen auf kleinen Screens */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
   @media (max-width: 700px) {
     header h1 { font-size: 17px; }
     input[type=number] { width: 52px; }
-    td, th { padding: 6px 6px; font-size: 13px; }
+    td, th { padding: 6px 6px; font-size: 13px; white-space: nowrap; }
   }
 </style>
 </head>
@@ -177,26 +195,31 @@
 </header>
 <main>
 
-<!-- GESAMTÜBERSICHT -->
-<section id="sec-gesamt-top">
-  <div class="section-title">🏆 Aktuelle Gesamtwertung</div>
+<!-- GESAMTERGEBNIS (oben) -->
+<section id="sec-gesamtergebnis">
+  <div class="section-title">🎯 Gesamtergebnis</div>
+  <div class="info-box">
+    <strong>Formel:</strong> Gesamt Netto = Quali Netto gew. + (Endrunde Netto × 2) &nbsp;|&nbsp; Gesamt Brutto = Quali Brutto gew. + (Endrunde Brutto × 2)
+  </div>
   <div class="card">
-    <table class="summary-table" id="tbl-gesamt-top">
+    <div class="table-scroll">
+    <table class="gesamtergebnis-table" id="tbl-gesamtergebnis">
       <thead>
         <tr>
           <th>Platz</th>
           <th>Spieler</th>
-          <th>Quali Netto gew.</th>
-          <th>Quali Brutto gew.</th>
-          <th>Endrunde Netto</th>
-          <th>Endrunde Brutto</th>
-          <th>Gesamt Netto</th>
-          <th>Gesamt Brutto</th>
-          <th>Brutto+Netto</th>
+          <th class="col-netto">Quali Netto gew.</th>
+          <th class="col-netto">Endrunde Netto ×2</th>
+          <th class="col-gesamt-netto">⭐ Gesamt Netto</th>
+          <th class="col-brutto">Quali Brutto gew.</th>
+          <th class="col-brutto">Endrunde Brutto ×2</th>
+          <th class="col-brutto">Gesamt Brutto</th>
+          <th class="col-combined">Brutto+Netto</th>
         </tr>
       </thead>
-      <tbody id="tbody-gesamt-top"></tbody>
+      <tbody id="tbody-gesamtergebnis"></tbody>
     </table>
+    </div>
   </div>
 </section>
 
@@ -213,21 +236,23 @@
     <div class="card-header" style="background:#1a1a1a;">
       <span class="round-name">Qualifikation – Zusammenfassung</span>
     </div>
+    <div class="table-scroll">
     <table>
       <thead>
         <tr>
           <th>Spieler</th>
-          <th>Netto gesamt</th>
-          <th>Streicher</th>
-          <th>Netto gewertet</th>
-          <th>Brutto gesamt</th>
-          <th>Brutto gewertet</th>
-          <th>Brutto+Netto</th>
-          <th>Platz Netto</th>
+          <th class="col-netto">Netto gesamt</th>
+          <th style="background:#ffe0e0;color:#990000;">Streicher</th>
+          <th class="col-netto">Netto gewertet</th>
+          <th class="col-brutto">Brutto gesamt</th>
+          <th class="col-brutto">Brutto gewertet</th>
+          <th class="col-combined">Brutto+Netto</th>
+          <th class="col-gesamt-netto">Platz Netto</th>
         </tr>
       </thead>
       <tbody id="tbody-quali-summary"></tbody>
     </table>
+    </div>
   </div>
 </section>
 
@@ -244,43 +269,19 @@
     <div class="card-header" style="background:#1a1a1a;">
       <span class="round-name">Endrunde – Zusammenfassung</span>
     </div>
+    <div class="table-scroll">
     <table>
       <thead>
         <tr>
           <th>Spieler</th>
-          <th>Netto gesamt</th>
-          <th>Brutto gesamt</th>
-          <th>Brutto+Netto</th>
+          <th class="col-netto">Netto gesamt</th>
+          <th class="col-brutto">Brutto gesamt</th>
+          <th class="col-combined">Brutto+Netto</th>
         </tr>
       </thead>
       <tbody id="tbody-final-summary"></tbody>
     </table>
-  </div>
-</section>
-
-<!-- GESAMTERGEBNIS -->
-<section id="sec-gesamtergebnis">
-  <div class="section-title">🎯 Gesamtergebnis</div>
-  <div class="info-box">
-    <strong>Formel:</strong> Gesamt Netto = Quali Netto gew. + (Endrunde Netto × 2) &nbsp;|&nbsp; Gesamt Brutto = Quali Brutto gew. + (Endrunde Brutto × 2)
-  </div>
-  <div class="card">
-    <table class="gesamtergebnis-table" id="tbl-gesamtergebnis">
-      <thead>
-        <tr>
-          <th>Platz</th>
-          <th>Spieler</th>
-          <th>Quali Netto gew.</th>
-          <th>Quali Brutto gew.</th>
-          <th>Endrunde Netto ×2</th>
-          <th>Endrunde Brutto ×2</th>
-          <th>Gesamt Netto</th>
-          <th>Gesamt Brutto</th>
-          <th>Brutto+Netto</th>
-        </tr>
-      </thead>
-      <tbody id="tbody-gesamtergebnis"></tbody>
-    </table>
+    </div>
   </div>
 </section>
 
@@ -480,6 +481,8 @@ function renderQualiRounds() {
     card.appendChild(header);
 
     // Table
+    const tableWrap = document.createElement('div');
+    tableWrap.className = 'table-scroll';
     const table = document.createElement('table');
     table.innerHTML = `
       <thead>
@@ -508,7 +511,8 @@ function renderQualiRounds() {
     });
 
     table.appendChild(tbody);
-    card.appendChild(table);
+    tableWrap.appendChild(table);
+    card.appendChild(tableWrap);
     container.appendChild(card);
   });
 
@@ -536,6 +540,8 @@ function renderFinalRounds() {
     header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span><span class="round-date">${round.date}</span>`;
     card.appendChild(header);
 
+    const tableWrap2 = document.createElement('div');
+    tableWrap2.className = 'table-scroll';
     const table = document.createElement('table');
     table.innerHTML = `
       <thead>
@@ -559,7 +565,8 @@ function renderFinalRounds() {
     });
 
     table.appendChild(tbody);
-    card.appendChild(table);
+    tableWrap2.appendChild(table);
+    card.appendChild(tableWrap2);
     container.appendChild(card);
   });
 }
@@ -606,34 +613,28 @@ function renderFinalSummary(finalData) {
 function renderGesamt(gesamtData) {
   const ranks = getRanking(gesamtData, 'gesamtNetto');
 
-  // Sort players by rank for display
   const sorted = PLAYERS.map((p, i) => ({player: p, idx: i, rank: ranks[i], ...gesamtData[i]}))
     .sort((a, b) => a.rank - b.rank);
 
-  const renderBody = (tbodyId, showMedal) => {
-    const tbody = document.getElementById(tbodyId);
-    tbody.innerHTML = '';
-    sorted.forEach(d => {
-      const medal = MEDALS[d.rank - 1] || d.rank + '.';
-      const tr = document.createElement('tr');
-      if (d.rank <= 3) tr.classList.add('rank-' + d.rank);
-      tr.innerHTML = `
-        <td class="platz-cell">${medal}</td>
-        <td><span class="player-name">${d.player}</span></td>
-        <td>${d.qualiNetto}</td>
-        <td>${d.qualiBrutto}</td>
-        <td>${d.finalNetto * 2} <small style="color:var(--muted)">(${d.finalNetto}×2)</small></td>
-        <td>${d.finalBrutto * 2} <small style="color:var(--muted)">(${d.finalBrutto}×2)</small></td>
-        <td><strong>${d.gesamtNetto}</strong></td>
-        <td><strong>${d.gesamtBrutto}</strong></td>
-        <td><strong>${d.combined}</strong></td>
-      `;
-      tbody.appendChild(tr);
-    });
-  };
-
-  renderBody('tbody-gesamt-top', true);
-  renderBody('tbody-gesamtergebnis', true);
+  const tbody = document.getElementById('tbody-gesamtergebnis');
+  tbody.innerHTML = '';
+  sorted.forEach(d => {
+    const medal = MEDALS[d.rank - 1] || d.rank + '.';
+    const tr = document.createElement('tr');
+    if (d.rank <= 3) tr.classList.add('rank-' + d.rank);
+    tr.innerHTML = `
+      <td class="platz-cell">${medal}</td>
+      <td><span class="player-name">${d.player}</span></td>
+      <td class="col-netto">${d.qualiNetto}</td>
+      <td class="col-netto">${d.finalNetto * 2} <small style="color:var(--muted)">(${d.finalNetto}×2)</small></td>
+      <td class="col-gesamt-netto"><strong>${d.gesamtNetto}</strong></td>
+      <td class="col-brutto">${d.qualiBrutto}</td>
+      <td class="col-brutto">${d.finalBrutto * 2} <small style="color:var(--muted)">(${d.finalBrutto}×2)</small></td>
+      <td class="col-brutto"><strong>${d.gesamtBrutto}</strong></td>
+      <td class="col-combined"><strong>${d.combined}</strong></td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
 function recalcAndRender() {
@@ -641,11 +642,11 @@ function recalcAndRender() {
   const finalData = calcFinal();
   const gesamtData = calcGesamt(qualiData, finalData);
 
+  renderGesamt(gesamtData);
   renderQualiRounds();
   renderFinalRounds();
   renderQualiSummary(qualiData);
   renderFinalSummary(finalData);
-  renderGesamt(gesamtData);
 
   attachInputListeners();
 }
