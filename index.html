@@ -545,42 +545,64 @@ function getRanking(data, key) {
 function renderQualiRounds() {
   const container = document.getElementById('quali-rounds');
   const streichers = getStreichers();
-  container.innerHTML = '';
 
   state.qualiRounds.forEach((round, ri) => {
-    const card = document.createElement('div');
-    card.className = 'card';
+    const cardId = `quali-card-${ri}`;
+    let card = document.getElementById(cardId);
 
-    // Header
-    const header = document.createElement('div');
-    header.className = 'card-header';
+    // Karte neu erstellen falls noch nicht vorhanden
+    if (!card) {
+      card = document.createElement('div');
+      card.className = 'card';
+      card.id = cardId;
 
-    if (round.fixed) {
-      header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span><span class="round-date">${round.date}</span>`;
-    } else {
-      header.innerHTML = `
-        <span class="round-name">${ri+1}.</span>
-        <input type="text" placeholder="Platzname" value="${round.name === 'tbd' ? '' : round.name}" data-qi="${ri}" data-field="name" style="flex:1;margin:0 8px;">
-        <input type="text" placeholder="tt.mm.jj" value="${round.date === 'tt.mm.26' ? '' : round.date}" data-qi="${ri}" data-field="date" style="width:90px;">
-      `;
+      const header = document.createElement('div');
+      header.className = 'card-header';
+      header.id = `quali-header-${ri}`;
+      card.appendChild(header);
+
+      const tableWrap = document.createElement('div');
+      tableWrap.className = 'table-scroll';
+      const table = document.createElement('table');
+      table.innerHTML = `<thead><tr><th>Spieler</th><th>Netto</th><th>Brutto</th></tr></thead>`;
+      const tbody = document.createElement('tbody');
+      tbody.id = `quali-tbody-${ri}`;
+      table.appendChild(tbody);
+      tableWrap.appendChild(table);
+      card.appendChild(tableWrap);
+      container.appendChild(card);
     }
-    card.appendChild(header);
 
-    // Table
-    const tableWrap = document.createElement('div');
-    tableWrap.className = 'table-scroll';
-    const table = document.createElement('table');
-    table.innerHTML = `
-      <thead>
-        <tr>
-          <th>Spieler</th>
-          <th>Netto</th>
-          <th>Brutto</th>
-        </tr>
-      </thead>
-    `;
-    const tbody = document.createElement('tbody');
+    // Header aktualisieren – aber nur wenn kein Input darin fokussiert ist
+    const header = document.getElementById(`quali-header-${ri}`);
+    const activeInHeader = header.contains(document.activeElement);
+    if (!activeInHeader) {
+      if (round.fixed) {
+        header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span><span class="round-date">${round.date}</span>`;
+      } else {
+        const nameVal = round.name === 'tbd' ? '' : round.name;
+        const dateVal = round.date === 'tt.mm.26' ? '' : round.date;
+        header.innerHTML = `
+          <span class="round-name">${ri+1}.</span>
+          <input type="text" placeholder="Platzname" value="${nameVal}" data-qi="${ri}" data-field="name" style="flex:1;margin:0 8px;">
+          <input type="text" placeholder="tt.mm.jj" value="${dateVal}" data-qi="${ri}" data-field="date" style="width:90px;">
+        `;
+        // Events neu anhängen
+        header.querySelectorAll('input[data-field]').forEach(inp => {
+          inp.addEventListener('input', e => {
+            if (!isUnlocked) return;
+            const qi = parseInt(e.target.dataset.qi);
+            const field = e.target.dataset.field;
+            state.qualiRounds[qi][field] = e.target.value || 'tbd';
+            saveState();
+          });
+        });
+      }
+    }
 
+    // Tbody aktualisieren
+    const tbody = document.getElementById(`quali-tbody-${ri}`);
+    tbody.innerHTML = '';
     PLAYERS.forEach((player, pi) => {
       const isStruck = isRoundPlayed(round) && streichers[pi] === ri;
       const tr = document.createElement('tr');
@@ -594,28 +616,6 @@ function renderQualiRounds() {
         <td><span class="score-val"><input type="number" min="0" max="99" value="${round.brutto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="brutto"></span></td>
       `;
       tbody.appendChild(tr);
-    });
-
-    table.appendChild(tbody);
-    tableWrap.appendChild(table);
-    card.appendChild(tableWrap);
-    container.appendChild(card);
-  });
-
-  // Attach events for tbd name/date inputs
-  container.querySelectorAll('input[data-field]').forEach(inp => {
-    inp.addEventListener('input', e => {
-      if (!isUnlocked) return;
-      const qi = parseInt(e.target.dataset.qi);
-      const field = e.target.dataset.field;
-      state.qualiRounds[qi][field] = e.target.value || 'tbd';
-      // Nur speichern, NICHT neu rendern – verhindert Fokusverlust
-      saveState();
-    });
-    inp.addEventListener('blur', e => {
-      if (!isUnlocked) return;
-      // Nach Fokusverlust neu rendern damit Anzeige aktuell ist
-      recalcAndRender();
     });
   });
 }
