@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meeting@FlexWork 2026 – Dokumentation</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --red: #CC0000;
+    --bg: #f5f5f5;
+    --card: #ffffff;
+    --border: #e0e0e0;
+    --text: #1a1a1a;
+    --muted: #666;
+  }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  header {
+    background: var(--red);
+    color: white;
+    padding: 24px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  header .logo {
+    font-size: 28px;
+    font-weight: 700;
+    background: white;
+    color: var(--red);
+    padding: 4px 10px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 22px; font-weight: 600; }
+  header p { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+  main { max-width: 900px; margin: 0 auto; padding: 32px 16px 64px; }
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--red);
+    border-left: 4px solid var(--red);
+    padding-left: 12px;
+    margin: 36px 0 16px;
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin: 24px 0 10px;
+  }
+  p { font-size: 15px; line-height: 1.7; color: #333; margin-bottom: 12px; }
+  .card {
+    background: var(--card);
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    background: #f0f0f0;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--muted);
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .formula-box {
+    background: #1a1a1a;
+    color: #f8f8f8;
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.8;
+    margin: 12px 0 20px;
+  }
+  .info-box {
+    background: #fff8f8;
+    border: 1px solid #ffcccc;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #555;
+    margin: 12px 0 20px;
+    line-height: 1.6;
+  }
+  .info-box strong { color: var(--red); }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    vertical-align: middle;
+  }
+  .badge-red { background: #CC0000; color: white; }
+  .badge-orange { background: #ff9800; color: white; }
+  .badge-green { background: #4caf50; color: white; }
+  .badge-yellow { background: #f0a500; color: white; }
+  .badge-dark { background: #1a1a1a; color: white; }
+  .highlight { color: var(--red); font-weight: 600; }
+  .toc {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    padding: 20px 24px;
+    margin-bottom: 32px;
+  }
+  .toc h3 { margin: 0 0 12px; font-size: 15px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin-bottom: 6px; }
+  .toc a { color: var(--red); text-decoration: none; font-size: 14px; }
+  .toc a:hover { text-decoration: underline; }
+  footer {
+    text-align: center;
+    padding: 24px;
+    font-size: 13px;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    margin-top: 48px;
+  }
+  @media (max-width: 600px) {
+    header { padding: 16px; }
+    header h1 { font-size: 17px; }
+    main { padding: 20px 12px 48px; }
+    td, th { padding: 8px 10px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">DB</div>
+  <div>
+    <h1>Meeting@FlexWork 2026</h1>
+    <p>Turnierdokumentation – Fachliche Beschreibung</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- INHALTSVERZEICHNIS -->
+  <div class="toc">
+    <h3>Inhalt</h3>
+    <ol>
+      <li><a href="#ueberblick">Überblick</a></li>
+      <li><a href="#spieler">Spieler</a></li>
+      <li><a href="#quali">Phase 1: Qualifikationsrunde</a></li>
+      <li><a href="#ersatz">Ersatz-Regel</a></li>
+      <li><a href="#streicher">Streicher-Regel</a></li>
+      <li><a href="#endrunde">Phase 2: Endrunde Race4Munich</a></li>
+      <li><a href="#gesamt">Gesamtwertung</a></li>
+      <li><a href="#technik">Technische Umsetzung</a></li>
+      <li><a href="#badges">Badges & Anzeige-Logik</a></li>
+    </ol>
+  </div>
+
+  <!-- ÜBERBLICK -->
+  <h2 id="ueberblick">1. Überblick</h2>
+  <p>
+    <strong>Meeting@FlexWork 2026</strong> ist ein internes Golf-Turnier der DB für 4 Spieler.
+    Das Turnier besteht aus zwei Phasen: einer <strong>Qualifikationsrunde</strong> mit bis zu 8 Runden
+    auf verschiedenen Plätzen und einer <strong>Endrunde</strong> (Race4Munich) in Bad Griesbach.
+    Die Gesamtwertung ergibt sich aus beiden Phasen, wobei die Endrunde doppelt gewichtet wird.
+  </p>
+
+  <!-- SPIELER -->
+  <h2 id="spieler">2. Spieler</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>#</th><th>Spieler</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Lutz</td></tr>
+        <tr><td>2</td><td>Markus</td></tr>
+        <tr><td>3</td><td>Henrick</td></tr>
+        <tr><td>4</td><td>Thorsten</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- QUALIFIKATION -->
+  <h2 id="quali">3. Phase 1: Qualifikationsrunde</h2>
+
+  <h3>Runden</h3>
+  <p>Bis zu <strong>8 Runden</strong> auf verschiedenen Golfplätzen. Bereits gespielte Runden:</p>
+  <div class="card">
+    <table>
+      <thead><tr><th>#</th><th>Platz</th><th>Datum</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Bad Griesbach – Uttlau</td><td>14.09.25</td><td>✅ gespielt</td></tr>
+        <tr><td>2</td><td>Idstein Süd</td><td>17.10.25</td><td>✅ gespielt</td></tr>
+        <tr><td>3</td><td>Rhein Main</td><td>17.04.26</td><td>✅ gespielt</td></tr>
+        <tr><td>4–8</td><td>noch offen (tbd)</td><td>tt.mm.26</td><td>⏳ ausstehend</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Eingabe pro Runde</h3>
+  <p>Pro Spieler werden zwei Werte erfasst:</p>
+  <div class="card">
+    <table>
+      <thead><tr><th>Wert</th><th>Beschreibung</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Netto</strong></td><td>Stableford-Punkte nach Handicap-Abzug</td></tr>
+        <tr><td><strong>Brutto</strong></td><td>Gespielte Stableford-Punkte ohne Handicap</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ERSATZ -->
+  <h2 id="ersatz">4. Ersatz-Regel (bei Nicht-Teilnahme)</h2>
+  <p>
+    Wenn ein Spieler bei einer gespielten Runde <strong>nicht teilnimmt</strong> (Netto = 0),
+    greift die Ersatz-Regel:
+  </p>
+  <div class="info-box">
+    <strong>Ersatz-Netto</strong> = schlechtestes Netto-Ergebnis der anderen Spieler in dieser Runde<br>
+    <strong>Ersatz-Brutto</strong> = schlechtestes Brutto-Ergebnis der anderen Spieler in dieser Runde
+  </div>
+  <p>
+    Ersatz-Runden werden mit dem Badge <span class="badge badge-orange">Ersatz</span> gekennzeichnet.
+    In der Spalte <strong>GEW.</strong> wird der tatsächlich gewertete Ersatz-Wert angezeigt.
+  </p>
+  <div class="card">
+    <table>
+      <thead><tr><th>Beispiel</th><th>Wert</th></tr></thead>
+      <tbody>
+        <tr><td>Thorsten bei Idstein Süd (nicht gespielt)</td><td>Netto der anderen: Lutz 40, Markus 30, Henrick 26 → Ersatz = <strong>26</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- STREICHER -->
+  <h2 id="streicher">5. Streicher-Regel</h2>
+  <p>
+    Pro Spieler wird das schlechteste Ergebnis gestrichen und nicht gewertet.
+    Die Logik hängt davon ab, ob Ersatz-Runden vorliegen:
+  </p>
+  <div class="card">
+    <table>
+      <thead><tr><th>Situation</th><th>Streicher</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Keine Ersatz-Runden<br><small>(Spieler hat alle Runden selbst gespielt)</small></td>
+          <td>Schlechtestes eigenes Netto-Ergebnis</td>
+        </tr>
+        <tr>
+          <td>1 Ersatz-Runde</td>
+          <td>Diese Ersatz-Runde ist automatisch der Streicher<br><small>(kein "Ersatz"-Badge, nur "Streicher")</small></td>
+        </tr>
+        <tr>
+          <td>2+ Ersatz-Runden</td>
+          <td>Die Ersatz-Runde mit dem <strong>niedrigsten</strong> Ersatz-Netto ist der Streicher.<br>
+          Die anderen Ersatz-Runden zählen normal mit und zeigen das <span class="badge badge-orange">Ersatz</span>-Badge.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="info-box">
+    <strong>Wichtig:</strong> Eigene Ergebnisse können <strong>niemals</strong> Streicher sein,
+    solange Ersatz-Runden vorhanden sind. Der Streicher kommt immer aus den Ersatz-Runden,
+    wenn welche existieren.
+  </div>
+  <p>
+    Die gestrichene Runde wird mit dem Badge <span class="badge badge-red">Streicher</span> markiert.
+    Sowohl Netto als auch Brutto dieser Runde werden <strong>nicht</strong> gewertet.
+  </p>
+
+  <h3>Berechnung Qualifikation</h3>
+  <div class="formula-box">
+    Netto gewertet  = Summe aller Netto-Werte (echt + Ersatz) − Streicher-Netto<br>
+    Brutto gewertet = Summe aller Brutto-Werte (echt + Ersatz) − Streicher-Brutto
+  </div>
+  <p>Platzierung nach <strong>Netto gewertet</strong> (höchste Punktzahl = Platz 1)</p>
+
+  <!-- ENDRUNDE -->
+  <h2 id="endrunde">6. Phase 2: Endrunde Race4Munich</h2>
+  <p>4 Runden in Bad Griesbach, 10.–12. September 2026:</p>
+  <div class="card">
+    <table>
+      <thead><tr><th>#</th><th>Platz</th><th>Datum</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Sagmühle</td><td>Do, 10.09.26</td></tr>
+        <tr><td>2</td><td>Brunnwies</td><td>Fr, 11.09.26</td></tr>
+        <tr><td>3</td><td>Porsche</td><td>Sa, 12.09.26</td></tr>
+        <tr><td>4</td><td>Beckenbauer</td><td>Sa, 12.09.26</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="info-box">
+    <strong>Kein Streicher</strong> in der Endrunde – alle 4 Runden zählen.<br>
+    <strong>Keine Ersatz-Regel</strong> in der Endrunde.<br>
+    Die Endrunde fließt mit Faktor <strong>×2</strong> in die Gesamtwertung ein.
+  </div>
+
+  <!-- GESAMTWERTUNG -->
+  <h2 id="gesamt">7. Gesamtwertung</h2>
+  <div class="formula-box">
+    Gesamt Netto  = Quali Netto gewertet + (Endrunde Netto × 2)<br>
+    Gesamt Brutto = Quali Brutto gewertet + (Endrunde Brutto × 2)
+  </div>
+  <p>Platzierung nach <strong>Gesamt Netto</strong> (höchste Punktzahl = Platz 1)</p>
+
+  <!-- TECHNIK -->
+  <h2 id="technik">8. Technische Umsetzung</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Merkmal</th><th>Details</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Plattform</strong></td><td>Web-App (HTML / CSS / JavaScript)</td></tr>
+        <tr><td><strong>Hosting</strong></td><td>GitHub Pages – <a href="https://thorsten1708.github.io/flexwork2026" style="color:var(--red)">thorsten1708.github.io/flexwork2026</a></td></tr>
+        <tr><td><strong>Datenbank</strong></td><td>Firebase Firestore – Echtzeit-Synchronisation für alle Spieler</td></tr>
+        <tr><td><strong>Offline</strong></td><td>PWA mit Service Worker – funktioniert ohne Internet (z.B. auf dem Golfplatz)</td></tr>
+        <tr><td><strong>Schreibschutz</strong></td><td>PIN-geschützt – nur berechtigte Nutzer können Daten eingeben</td></tr>
+        <tr><td><strong>Lesezugriff</strong></td><td>Alle Spieler können die App öffnen und den aktuellen Stand sehen</td></tr>
+        <tr><td><strong>Geräte</strong></td><td>Optimiert für iPhone (Mobile-Karten) und Desktop (Tabellen)</td></tr>
+        <tr><td><strong>Installation</strong></td><td>Als PWA über Safari → "Zum Home-Bildschirm" installierbar</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- BADGES -->
+  <h2 id="badges">9. Badges & Anzeige-Logik</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Badge / Anzeige</th><th>Farbe</th><th>Bedeutung</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-red">Streicher</span></td>
+          <td>Rot</td>
+          <td>Diese Runde wird nicht gewertet (weder Netto noch Brutto)</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-orange">Ersatz</span></td>
+          <td>Orange</td>
+          <td>Spieler war nicht dabei – Ersatzwert der anderen wird verwendet. Nur sichtbar wenn die Ersatz-Runde <em>nicht</em> gestrichen wird.</td>
+        </tr>
+        <tr>
+          <td><strong style="color:#ff9800;">GEW.</strong></td>
+          <td>Gelb</td>
+          <td>Tatsächlich gewerteter Netto-Wert: eigener Wert, Ersatzwert (orange) oder — bei Streicher</td>
+        </tr>
+        <tr>
+          <td>🥇🥈🥉</td>
+          <td>Gold / Silber / Bronze</td>
+          <td>Platzierung 1–3 in der Wertung</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-green">● Live</span></td>
+          <td>Grün</td>
+          <td>Firebase verbunden – Daten werden in Echtzeit synchronisiert</td>
+        </tr>
+        <tr>
+          <td>🔒 / 🔓</td>
+          <td>–</td>
+          <td>Schreibschutz: gesperrt (nur lesen) / entsperrt (PIN eingegeben, Eingabe möglich)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<footer>
+  Meeting@FlexWork 2026 – Dokumentation &nbsp;|&nbsp; App Version 2.1 &nbsp;|&nbsp; April 2026
+</footer>
+
+</body>
+</html>
