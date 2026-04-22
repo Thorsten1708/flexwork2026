@@ -98,7 +98,9 @@
   }
   .card-header input[type=text]::placeholder { color: rgba(255,255,255,0.6); }
   .card-header input[type=text]:focus { background: rgba(255,255,255,0.3); }
-  table { width: 100%; border-collapse: collapse; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .col-spieler { width: 50%; text-align: left; }
+  .col-score { width: 25%; text-align: center; }
   th {
     background: #f9f9f9;
     font-size: 12px;
@@ -330,7 +332,7 @@ const db = firebase.firestore();
 let isUnlocked = false;
 let isSaving = false; // Flag: verhindert Re-render durch eigenen Snapshot
 const CORRECT_PIN = '2026';
-const APP_VERSION = '1.5';
+const APP_VERSION = '1.6';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -572,7 +574,7 @@ function renderQualiRounds() {
       const tableWrap = document.createElement('div');
       tableWrap.className = 'table-scroll';
       const table = document.createElement('table');
-      table.innerHTML = `<thead><tr><th>Spieler</th><th>Netto</th><th>Brutto</th></tr></thead>`;
+      table.innerHTML = `<thead><tr><th class="col-spieler">Spieler</th><th class="col-score">Netto</th><th class="col-score">Brutto</th></tr></thead>`;
       const tbody = document.createElement('tbody');
       tbody.id = `quali-tbody-${ri}`;
       table.appendChild(tbody);
@@ -616,12 +618,12 @@ function renderQualiRounds() {
       const tr = document.createElement('tr');
       if (isStruck) tr.classList.add('struck');
       tr.innerHTML = `
-        <td>
+        <td class="col-spieler">
           <span class="player-name">${player}</span>
           ${isStruck ? '<span class="streicher-badge">Streicher</span>' : ''}
         </td>
-        <td><span class="score-val"><input type="number" min="0" max="99" value="${round.netto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="netto"></span></td>
-        <td><span class="score-val"><input type="number" min="0" max="99" value="${round.brutto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="brutto"></span></td>
+        <td class="col-score"><span class="score-val"><input type="number" min="0" max="99" value="${round.netto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="netto"></span></td>
+        <td class="col-score"><span class="score-val"><input type="number" min="0" max="99" value="${round.brutto[pi]}" data-type="quali" data-ri="${ri}" data-pi="${pi}" data-score="brutto"></span></td>
       `;
       tbody.appendChild(tr);
     });
@@ -647,9 +649,9 @@ function renderFinalRounds() {
     table.innerHTML = `
       <thead>
         <tr>
-          <th>Spieler</th>
-          <th>Netto</th>
-          <th>Brutto</th>
+          <th class="col-spieler">Spieler</th>
+          <th class="col-score">Netto</th>
+          <th class="col-score">Brutto</th>
         </tr>
       </thead>
     `;
@@ -658,9 +660,9 @@ function renderFinalRounds() {
     PLAYERS.forEach((player, pi) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><span class="player-name">${player}</span></td>
-        <td><input type="number" min="0" max="99" value="${round.netto[pi]}" data-type="final" data-ri="${ri}" data-pi="${pi}" data-score="netto"></td>
-        <td><input type="number" min="0" max="99" value="${round.brutto[pi]}" data-type="final" data-ri="${ri}" data-pi="${pi}" data-score="brutto"></td>
+        <td class="col-spieler"><span class="player-name">${player}</span></td>
+        <td class="col-score"><input type="number" min="0" max="99" value="${round.netto[pi]}" data-type="final" data-ri="${ri}" data-pi="${pi}" data-score="netto"></td>
+        <td class="col-score"><input type="number" min="0" max="99" value="${round.brutto[pi]}" data-type="final" data-ri="${ri}" data-pi="${pi}" data-score="brutto"></td>
       `;
       tbody.appendChild(tr);
     });
