@@ -11,6 +11,8 @@
 <meta name="apple-mobile-web-app-title" content="FlexWork">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -183,6 +185,18 @@
     input[type=number] { width: 52px; }
     td, th { padding: 6px 6px; font-size: 13px; white-space: nowrap; }
   }
+
+  /* Lock button & Firebase status */
+  .lock-btn { background: none; border: 2px solid white; color: white; border-radius: 6px; padding: 6px 12px; font-size: 16px; cursor: pointer; margin-left: auto; }
+  .lock-btn:hover { background: rgba(255,255,255,0.2); }
+  .lock-btn.unlocked { background: rgba(255,255,255,0.2); }
+  input[type=number]:disabled { opacity: 0.5; cursor: not-allowed; background: #f0f0f0; }
+  input[type=text]:disabled { opacity: 0.5; cursor: not-allowed; background: rgba(255,255,255,0.1); }
+  .firebase-status { display: flex; align-items: center; gap: 6px; font-size: 12px; opacity: 0.85; margin-left: 12px; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #aaa; flex-shrink: 0; }
+  .status-dot.connected { background: #4caf50; }
+  .status-dot.loading { background: #ff9800; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 </style>
 </head>
 <body>
@@ -192,6 +206,11 @@
     <h1>Meeting@FlexWork 2026</h1>
     <p>Golf Turnier Wertung</p>
   </div>
+  <div class="firebase-status">
+    <div class="status-dot loading" id="statusDot"></div>
+    <span id="statusText">Verbinde…</span>
+  </div>
+  <button class="lock-btn" id="lockBtn" onclick="toggleLock()">🔒</button>
 </header>
 <main>
 
@@ -288,6 +307,63 @@
 </main>
 
 <script>
+// ---- FIREBASE INIT ----
+const firebaseConfig = {
+  apiKey: "AIzaSyAq4W1dbbwQKst0ZmZOkITJqYMpALukqHQ",
+  authDomain: "flexwork2026.firebaseapp.com",
+  projectId: "flexwork2026",
+  storageBucket: "flexwork2026.firebasestorage.app",
+  messagingSenderId: "618329184932",
+  appId: "1:618329184932:web:6da142379d38c89552a431"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ---- PIN / LOCK STATE ----
+let isUnlocked = false;
+const CORRECT_PIN = '2026';
+
+function toggleLock() {
+  if (isUnlocked) {
+    // Lock
+    isUnlocked = false;
+    document.getElementById('lockBtn').textContent = '🔒';
+    document.getElementById('lockBtn').classList.remove('unlocked');
+    updateInputState();
+  } else {
+    // Unlock
+    const pin = prompt('PIN eingeben:');
+    if (pin === CORRECT_PIN) {
+      isUnlocked = true;
+      document.getElementById('lockBtn').textContent = '🔓';
+      document.getElementById('lockBtn').classList.add('unlocked');
+      updateInputState();
+    } else if (pin !== null) {
+      alert('Falscher PIN');
+    }
+  }
+}
+
+function updateInputState() {
+  document.querySelectorAll('input[type=number], input[type=text]').forEach(inp => {
+    inp.disabled = !isUnlocked;
+  });
+}
+
+// ---- FIREBASE STATUS ----
+function setStatus(state) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  if (state === 'connected') {
+    dot.className = 'status-dot connected';
+    txt.textContent = 'Live';
+  } else {
+    dot.className = 'status-dot loading';
+    txt.textContent = 'Verbinde…';
+  }
+}
+
+// ---- CONSTANTS ----
 const PLAYERS = ['Lutz', 'Markus', 'Henrick', 'Thorsten'];
 const MEDALS = ['🥇', '🥈', '🥉', '4.'];
 
@@ -312,43 +388,48 @@ const DEFAULT_FINAL_ROUNDS = [
   { name: 'Bad Griesbach IV (Sa) – Beckenbauer', date: '12.09.26', netto: [0,0,0,0], brutto: [0,0,0,0] },
 ];
 
-// Safe localStorage wrapper – falls back silently if unavailable (e.g. iCloud/Safari)
-const storage = (() => {
-  try {
-    localStorage.setItem('_test', '1');
-    localStorage.removeItem('_test');
-    return {
-      get: (k) => { try { return localStorage.getItem(k); } catch(e) { return null; } },
-      set: (k, v) => { try { localStorage.setItem(k, v); } catch(e) {} },
-    };
-  } catch(e) {
-    return { get: () => null, set: () => {} };
-  }
-})();
+// ---- DEFAULT DATA ----
+const DEFAULT_STATE = {
+  qualiRounds: DEFAULT_QUALI_ROUNDS.map(r => ({...r, netto:[...r.netto], brutto:[...r.brutto]})),
+  finalRounds: DEFAULT_FINAL_ROUNDS.map(r => ({...r, netto:[...r.netto], brutto:[...r.brutto]})),
+};
 
-// Load state from localStorage or use defaults
-function loadState() {
-  try {
-    const saved = storage.get('mfw2026');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return {
-        qualiRounds: parsed.qualiRounds || DEFAULT_QUALI_ROUNDS.map(r => ({...r, netto:[...r.netto], brutto:[...r.brutto]})),
-        finalRounds: parsed.finalRounds || DEFAULT_FINAL_ROUNDS.map(r => ({...r, netto:[...r.netto], brutto:[...r.brutto]})),
-      };
-    }
-  } catch(e) {}
+// ---- FIRESTORE PERSISTENCE ----
+function saveState() {
+  db.collection('tournaments').doc('mfw2026').set(state)
+    .catch(err => console.error('Firestore save error:', err));
+}
+
+function loadState(data) {
+  if (data && data.qualiRounds && data.finalRounds) {
+    return {
+      qualiRounds: data.qualiRounds,
+      finalRounds: data.finalRounds,
+    };
+  }
   return {
     qualiRounds: DEFAULT_QUALI_ROUNDS.map(r => ({...r, netto:[...r.netto], brutto:[...r.brutto]})),
     finalRounds: DEFAULT_FINAL_ROUNDS.map(r => ({...r, netto:[...r.netto], brutto:[...r.brutto]})),
   };
 }
 
-function saveState() {
-  storage.set('mfw2026', JSON.stringify(state));
-}
+let state = {
+  qualiRounds: DEFAULT_QUALI_ROUNDS.map(r => ({...r, netto:[...r.netto], brutto:[...r.brutto]})),
+  finalRounds: DEFAULT_FINAL_ROUNDS.map(r => ({...r, netto:[...r.netto], brutto:[...r.brutto]})),
+};
 
-let state = loadState();
+// ---- REAL-TIME LISTENER ----
+db.collection('tournaments').doc('mfw2026').onSnapshot(
+  (doc) => {
+    setStatus('connected');
+    state = loadState(doc.exists ? doc.data() : null);
+    recalcAndRender();
+  },
+  (err) => {
+    console.error('Firestore onSnapshot error:', err);
+    setStatus('loading');
+  }
+);
 
 // ---- CALCULATIONS ----
 
@@ -519,6 +600,7 @@ function renderQualiRounds() {
   // Attach events for tbd name/date inputs
   container.querySelectorAll('input[data-field]').forEach(inp => {
     inp.addEventListener('input', e => {
+      if (!isUnlocked) return; // read-only when locked
       const qi = parseInt(e.target.dataset.qi);
       const field = e.target.dataset.field;
       state.qualiRounds[qi][field] = e.target.value || 'tbd';
@@ -649,11 +731,13 @@ function recalcAndRender() {
   renderFinalSummary(finalData);
 
   attachInputListeners();
+  updateInputState();
 }
 
 function attachInputListeners() {
   document.querySelectorAll('input[data-type]').forEach(inp => {
     inp.addEventListener('change', e => {
+      if (!isUnlocked) return; // read-only when locked
       const type = e.target.dataset.type;
       const ri = parseInt(e.target.dataset.ri);
       const pi = parseInt(e.target.dataset.pi);
@@ -671,9 +755,6 @@ function attachInputListeners() {
     });
   });
 }
-
-// Initial render
-recalcAndRender();
 
 // Service Worker registrieren
 if ('serviceWorker' in navigator) {
