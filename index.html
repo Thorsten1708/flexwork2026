@@ -423,6 +423,11 @@ db.collection('tournaments').doc('mfw2026').onSnapshot(
   (doc) => {
     setStatus('connected');
     state = loadState(doc.exists ? doc.data() : null);
+    // Nicht neu rendern wenn ein Text-Input gerade fokussiert ist (verhindert Fokusverlust)
+    const active = document.activeElement;
+    if (active && active.tagName === 'INPUT' && active.type === 'text') {
+      return;
+    }
     recalcAndRender();
   },
   (err) => {
@@ -600,11 +605,17 @@ function renderQualiRounds() {
   // Attach events for tbd name/date inputs
   container.querySelectorAll('input[data-field]').forEach(inp => {
     inp.addEventListener('input', e => {
-      if (!isUnlocked) return; // read-only when locked
+      if (!isUnlocked) return;
       const qi = parseInt(e.target.dataset.qi);
       const field = e.target.dataset.field;
       state.qualiRounds[qi][field] = e.target.value || 'tbd';
+      // Nur speichern, NICHT neu rendern – verhindert Fokusverlust
       saveState();
+    });
+    inp.addEventListener('blur', e => {
+      if (!isUnlocked) return;
+      // Nach Fokusverlust neu rendern damit Anzeige aktuell ist
+      recalcAndRender();
     });
   });
 }
