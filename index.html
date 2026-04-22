@@ -186,10 +186,55 @@
   /* Horizontales Scrollen für Tabellen auf kleinen Screens */
   .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
+  /* Gesamt Mobile Karten */
+  .gesamt-mobile { display: none; }
+  .gesamt-desktop { display: block; }
+  .gesamt-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .gesamt-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #1a1a1a;
+    color: white;
+  }
+  .gesamt-card.rank-1 .gesamt-card-header { background: #b8860b; }
+  .gesamt-card.rank-2 .gesamt-card-header { background: #666; }
+  .gesamt-card.rank-3 .gesamt-card-header { background: #8B4513; }
+  .gesamt-medal { font-size: 22px; }
+  .gesamt-player { font-size: 17px; font-weight: 700; flex: 1; }
+  .gesamt-main-score { font-size: 22px; font-weight: 700; color: #ffd700; }
+  .gesamt-main-score small { font-size: 11px; opacity: 0.8; }
+  .gesamt-card-body { padding: 8px 0; }
+  .gesamt-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .gesamt-row:last-child { border-bottom: none; }
+  .gesamt-row span { color: var(--muted); }
+  .gesamt-row strong { font-size: 15px; }
+  .col-netto-bg { background: #fffdf0; }
+  .col-gesamt-bg { background: #fff3cd; }
+  .col-gesamt-bg strong { color: #7a5c00; font-size: 17px; }
+  .col-brutto-bg { background: #f4fbf4; }
+  .col-combined-bg { background: #f0f2ff; }
+
   @media (max-width: 700px) {
     header h1 { font-size: 17px; }
     input[type=number] { width: 52px; }
     td, th { padding: 6px 6px; font-size: 13px; white-space: nowrap; }
+    .gesamt-mobile { display: block; }
+    .gesamt-desktop { display: none; }
   }
 
   /* Lock button & Firebase status */
@@ -229,7 +274,7 @@
   <div class="info-box">
     <strong>Formel:</strong> Gesamt Netto = Quali Netto gew. + (Endrunde Netto × 2) &nbsp;|&nbsp; Gesamt Brutto = Quali Brutto gew. + (Endrunde Brutto × 2)
   </div>
-  <div class="card">
+  <div class="card gesamt-desktop">
     <div class="table-scroll">
     <table class="gesamtergebnis-table" id="tbl-gesamtergebnis">
       <thead>
@@ -249,6 +294,7 @@
     </table>
     </div>
   </div>
+  <div class="gesamt-mobile" id="gesamt-mobile"></div>
 </section>
 
 <!-- QUALIFIKATIONSRUNDE -->
@@ -332,7 +378,7 @@ const db = firebase.firestore();
 let isUnlocked = false;
 let isSaving = false; // Flag: verhindert Re-render durch eigenen Snapshot
 const CORRECT_PIN = '2026';
-const APP_VERSION = '1.6';
+const APP_VERSION = '1.7';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -737,6 +783,47 @@ function renderGesamt(gesamtData) {
       <td class="col-combined"><strong>${d.combined}</strong></td>
     `;
     tbody.appendChild(tr);
+  });
+
+  // Mobile Karten
+  const mobileContainer = document.getElementById('gesamt-mobile');
+  mobileContainer.innerHTML = '';
+  sorted.forEach(d => {
+    const medal = MEDALS[d.rank - 1] || d.rank + '.';
+    const rankClass = d.rank <= 3 ? `rank-${d.rank}` : '';
+    const div = document.createElement('div');
+    div.className = `gesamt-card ${rankClass}`;
+    div.innerHTML = `
+      <div class="gesamt-card-header">
+        <span class="gesamt-medal">${medal}</span>
+        <span class="gesamt-player">${d.player}</span>
+        <span class="gesamt-main-score">${d.gesamtNetto} <small>Netto</small></span>
+      </div>
+      <div class="gesamt-card-body">
+        <div class="gesamt-row col-netto-bg">
+          <span>Quali Netto gew.</span><strong>${d.qualiNetto}</strong>
+        </div>
+        <div class="gesamt-row col-netto-bg">
+          <span>Endrunde Netto ×2</span><strong>${d.finalNetto * 2}</strong>
+        </div>
+        <div class="gesamt-row col-gesamt-bg">
+          <span>⭐ Gesamt Netto</span><strong>${d.gesamtNetto}</strong>
+        </div>
+        <div class="gesamt-row col-brutto-bg">
+          <span>Quali Brutto gew.</span><strong>${d.qualiBrutto}</strong>
+        </div>
+        <div class="gesamt-row col-brutto-bg">
+          <span>Endrunde Brutto ×2</span><strong>${d.finalBrutto * 2}</strong>
+        </div>
+        <div class="gesamt-row col-brutto-bg">
+          <span>Gesamt Brutto</span><strong>${d.gesamtBrutto}</strong>
+        </div>
+        <div class="gesamt-row col-combined-bg">
+          <span>Brutto+Netto</span><strong>${d.combined}</strong>
+        </div>
+      </div>
+    `;
+    mobileContainer.appendChild(div);
   });
 }
 
