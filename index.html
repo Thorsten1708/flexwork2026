@@ -661,6 +661,21 @@ let state = {
 let activeListener = null;
 
 function startListener() {
+  // Beim Start: prüfen ob neuer Pfad Daten hat, sonst vom Legacy-Pfad migrieren
+  getDocRef(currentSeason).get().then(doc => {
+    if (!doc.exists) {
+      // Neuer Pfad leer → Legacy-Daten kopieren
+      db.collection('tournaments').doc('mfw2026').get().then(legacyDoc => {
+        if (legacyDoc.exists) {
+          console.log('Migriere Daten vom Legacy-Pfad...');
+          getDocRef(currentSeason).set(legacyDoc.data()).then(() => {
+            console.log('Migration erfolgreich');
+          });
+        }
+      }).catch(err => console.error('Legacy-Migration fehlgeschlagen:', err));
+    }
+  }).catch(() => {});
+
   activeListener = getDocRef(currentSeason).onSnapshot(
     (doc) => {
       setStatus('connected');
@@ -678,21 +693,8 @@ function startListener() {
     (err) => {
       console.error('Firestore onSnapshot error:', err);
       setStatus('loading');
-      // Fallback: Legacy-Pfad versuchen (Migration von altem Pfad)
-      tryLegacyMigration();
     }
   );
-}
-
-// Migration: Daten vom alten Pfad (tournaments/mfw2026) in neuen Pfad kopieren
-function tryLegacyMigration() {
-  db.collection('tournaments').doc('mfw2026').get().then(doc => {
-    if (doc.exists) {
-      getDocRef('2026').set(doc.data()).then(() => {
-        console.log('Migration von Legacy-Pfad erfolgreich');
-      });
-    }
-  }).catch(() => {});
 }
 
 // ---- CALCULATIONS ----
