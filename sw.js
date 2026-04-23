@@ -1,8 +1,9 @@
-const CACHE = 'mfw2026-v11';
+const CACHE = 'mfw2026-v12';
 const ASSETS = [
   '/flexwork2026/',
   '/flexwork2026/index.html',
-  '/flexwork2026/manifest.json'
+  '/flexwork2026/manifest.json',
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
 self.addEventListener('install', e => {

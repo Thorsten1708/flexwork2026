@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -264,21 +265,112 @@
   .status-dot.connected { background: #4caf50; }
   .status-dot.loading { background: #ff9800; animation: pulse 1s infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* ---- TOAST ---- */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: #1a1a1a; color: white; padding: 10px 20px; border-radius: 24px;
+    font-size: 14px; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    transition: transform 0.3s ease, opacity 0.3s ease; opacity: 0; z-index: 9999;
+    white-space: nowrap; pointer-events: none;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* ---- IN-APP BANNER ---- */
+  #update-banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9998;
+    background: #1a6e2e; color: white; padding: 10px 16px;
+    display: flex; align-items: center; gap: 10px; font-size: 14px;
+    transform: translateY(-100%); transition: transform 0.35s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  #update-banner.show { transform: translateY(0); }
+  #update-banner .banner-icon { font-size: 18px; }
+  #update-banner .banner-close { margin-left: auto; cursor: pointer; font-size: 18px; opacity: 0.8; }
+
+  /* ---- COLLAPSED ROUND ---- */
+  .card.round-empty { opacity: 0.45; }
+  .card.round-empty .card-header { cursor: pointer; }
+  .card.round-empty .table-scroll { display: none; }
+  .card.round-empty.expanded { opacity: 1; }
+  .card.round-empty.expanded .table-scroll { display: block; }
+  .collapse-hint { font-size: 11px; opacity: 0.7; margin-left: 8px; }
+
+  /* ---- PDF BUTTON ---- */
+  .pdf-btn {
+    background: none; border: 2px solid white; color: white;
+    border-radius: 6px; padding: 6px 10px; font-size: 13px;
+    cursor: pointer; display: flex; align-items: center; gap: 4px;
+  }
+  .pdf-btn:hover { background: rgba(255,255,255,0.2); }
+
+  /* ---- CHART ---- */
+  .chart-card { background: white; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 16px; margin-bottom: 16px; }
+  .chart-card canvas { max-height: 280px; }
+
+  /* ---- SEASON SELECTOR ---- */
+  .season-select {
+    background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
+    color: white; border-radius: 6px; padding: 5px 8px; font-size: 13px;
+    font-family: inherit; outline: none; cursor: pointer;
+  }
+  .season-select option { background: #333; color: white; }
+
+  /* ---- PRINT ---- */
+  @media print {
+    header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #update-banner, #toast, .lock-btn, .pdf-btn, .season-select,
+    .firebase-status, input[type=number], input[type=text],
+    .gesamt-mobile, .info-box { display: none !important; }
+    .gesamt-desktop { display: block !important; }
+    .table-scroll { overflow: visible !important; }
+    body { background: white; }
+    main { padding: 12px; }
+    .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
+    section { page-break-inside: avoid; margin-bottom: 20px; }
+    th, td { font-size: 11px !important; padding: 5px 8px !important; }
+    .section-title { font-size: 14px; }
+    th.col-netto { background: #fff3cd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    th.col-gesamt-netto { background: #f0a500 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    th.col-brutto { background: #e8f4e8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    td.col-netto { background: #fffdf0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    td.col-gesamt-netto { background: #fff3cd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    td.col-brutto { background: #f4fbf4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .gesamtergebnis-table .rank-1 td { background: #fffbe6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .gesamtergebnis-table .rank-2 td { background: #f8f8f8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .gesamtergebnis-table .rank-3 td { background: #fff5ee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .card.round-empty { display: none !important; }
+    .chart-card { display: none !important; }
+  }
 </style>
 </head>
 <body>
+<!-- In-App Update Banner -->
+<div id="update-banner">
+  <span class="banner-icon">🔔</span>
+  <span id="banner-text">Ergebnisse wurden aktualisiert</span>
+  <span class="banner-close" onclick="closeBanner()">✕</span>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
 <header>
   <div class="logo">DB</div>
   <div class="header-title">
-    <h1>Meeting@FlexWork 2026</h1>
+    <h1>Meeting@FlexWork</h1>
     <p>Golf Turnier Wertung</p>
   </div>
   <div class="header-right">
+    <select class="season-select" id="seasonSelect" onchange="switchSeason(this.value)">
+      <option value="2026">Saison 2026</option>
+    </select>
     <div class="firebase-status">
       <div class="status-dot loading" id="statusDot"></div>
       <span id="statusText">…</span>
     </div>
     <div style="font-size:11px;opacity:0.6;">v<span id="appVersion"></span></div>
+    <button class="pdf-btn" onclick="exportPDF()" title="PDF exportieren">🖨️ PDF</button>
     <button class="lock-btn" id="lockBtn" onclick="toggleLock()">🔒</button>
   </div>
 </header>
@@ -310,6 +402,14 @@
     </div>
   </div>
   <div class="gesamt-mobile" id="gesamt-mobile"></div>
+</section>
+
+<!-- VERLAUFSDIAGRAMM -->
+<section id="sec-chart">
+  <div class="section-title">📈 Verlauf Qualifikation</div>
+  <div class="chart-card">
+    <canvas id="qualiChart"></canvas>
+  </div>
 </section>
 
 <!-- QUALIFIKATIONSRUNDE -->
@@ -388,21 +488,52 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// ---- MULTI-SEASON ARCHITECTURE ----
+// Firestore path: seasons/{seasonId}/tournaments/{tournamentId}
+// Legacy path (2026): tournaments/mfw2026  → auto-migrated on first load
+const SEASONS = {
+  '2026': { label: 'Saison 2026', tournamentId: 'mfw2026' },
+  // Neue Saisons hier eintragen, z.B.:
+  // '2027': { label: 'Saison 2027', tournamentId: 'mfw2027' },
+};
+let currentSeason = '2026';
+
+function getDocRef(seasonId) {
+  return db.collection('seasons').doc(seasonId).collection('tournaments').doc(SEASONS[seasonId].tournamentId);
+}
+
+function switchSeason(seasonId) {
+  if (!SEASONS[seasonId]) return;
+  currentSeason = seasonId;
+  if (activeListener) activeListener(); // unsubscribe old listener
+  startListener();
+}
+
+// Populate season selector
+function initSeasonSelector() {
+  const sel = document.getElementById('seasonSelect');
+  sel.innerHTML = '';
+  Object.entries(SEASONS).sort((a,b) => b[0].localeCompare(a[0])).forEach(([id, s]) => {
+    const opt = document.createElement('option');
+    opt.value = id; opt.textContent = s.label;
+    if (id === currentSeason) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
 // ---- PIN / LOCK STATE ----
 let isUnlocked = false;
-let isSaving = false; // Flag: verhindert Re-render durch eigenen Snapshot
+let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '2.1';
+const APP_VERSION = '3.0';
 
 function toggleLock() {
   if (isUnlocked) {
-    // Lock
     isUnlocked = false;
     document.getElementById('lockBtn').textContent = '🔒';
     document.getElementById('lockBtn').classList.remove('unlocked');
     updateInputState();
   } else {
-    // Unlock
     const pin = prompt('PIN eingeben:');
     if (pin === CORRECT_PIN) {
       isUnlocked = true;
@@ -421,11 +552,42 @@ function updateInputState() {
   });
 }
 
+// ---- TOAST ----
+let toastTimer = null;
+function showToast(msg, duration = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ---- IN-APP UPDATE BANNER ----
+let bannerTimer = null;
+let lastSnapshotHash = null;
+
+function showBanner(text) {
+  const b = document.getElementById('update-banner');
+  document.getElementById('banner-text').textContent = text;
+  b.classList.add('show');
+  if (bannerTimer) clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => b.classList.remove('show'), 5000);
+}
+
+function closeBanner() {
+  document.getElementById('update-banner').classList.remove('show');
+  if (bannerTimer) clearTimeout(bannerTimer);
+}
+
+function stateHash(data) {
+  return JSON.stringify(data);
+}
+
 // ---- FIREBASE STATUS ----
-function setStatus(state) {
+function setStatus(s) {
   const dot = document.getElementById('statusDot');
   const txt = document.getElementById('statusText');
-  if (state === 'connected') {
+  if (s === 'connected') {
     dot.className = 'status-dot connected';
     txt.textContent = 'Live';
   } else {
@@ -434,8 +596,14 @@ function setStatus(state) {
   }
 }
 
+// ---- PDF EXPORT ----
+function exportPDF() {
+  window.print();
+}
+
 // ---- CONSTANTS ----
 const PLAYERS = ['Lutz', 'Markus', 'Henrick', 'Thorsten'];
+const PLAYER_COLORS = ['#CC0000', '#1565C0', '#2E7D32', '#F57F17'];
 const MEDALS = ['🥇', '🥈', '🥉', '4.'];
 
 const DEFAULT_QUALI_ROUNDS = [
@@ -459,26 +627,24 @@ const DEFAULT_FINAL_ROUNDS = [
   { name: 'Bad Griesbach IV (Sa) – Beckenbauer', date: '12.09.26', netto: [0,0,0,0], brutto: [0,0,0,0] },
 ];
 
-// ---- DEFAULT DATA ----
-const DEFAULT_STATE = {
-  qualiRounds: DEFAULT_QUALI_ROUNDS.map(r => ({...r, netto:[...r.netto], brutto:[...r.brutto]})),
-  finalRounds: DEFAULT_FINAL_ROUNDS.map(r => ({...r, netto:[...r.netto], brutto:[...r.brutto]})),
-};
-
 // ---- FIRESTORE PERSISTENCE ----
 function saveState() {
   isSaving = true;
-  db.collection('tournaments').doc('mfw2026').set(state)
-    .then(() => { setTimeout(() => { isSaving = false; }, 1000); })
-    .catch(err => { console.error('Firestore save error:', err); isSaving = false; });
+  getDocRef(currentSeason).set(state)
+    .then(() => {
+      showToast('✓ Gespeichert');
+      setTimeout(() => { isSaving = false; }, 1200);
+    })
+    .catch(err => {
+      console.error('Firestore save error:', err);
+      showToast('⚠️ Fehler beim Speichern');
+      isSaving = false;
+    });
 }
 
 function loadState(data) {
   if (data && data.qualiRounds && data.finalRounds) {
-    return {
-      qualiRounds: data.qualiRounds,
-      finalRounds: data.finalRounds,
-    };
+    return { qualiRounds: data.qualiRounds, finalRounds: data.finalRounds };
   }
   return {
     qualiRounds: DEFAULT_QUALI_ROUNDS.map(r => ({...r, netto:[...r.netto], brutto:[...r.brutto]})),
@@ -492,19 +658,42 @@ let state = {
 };
 
 // ---- REAL-TIME LISTENER ----
-db.collection('tournaments').doc('mfw2026').onSnapshot(
-  (doc) => {
-    setStatus('connected');
-    // Eigenen Snapshot ignorieren – verhindert Fokusverlust beim Tippen
-    if (isSaving) return;
-    state = loadState(doc.exists ? doc.data() : null);
-    recalcAndRender();
-  },
-  (err) => {
-    console.error('Firestore onSnapshot error:', err);
-    setStatus('loading');
-  }
-);
+let activeListener = null;
+
+function startListener() {
+  activeListener = getDocRef(currentSeason).onSnapshot(
+    (doc) => {
+      setStatus('connected');
+      if (isSaving) return;
+      const newData = doc.exists ? doc.data() : null;
+      const newHash = stateHash(newData);
+      // Zeige Banner wenn sich Daten geändert haben (nicht beim ersten Load)
+      if (lastSnapshotHash !== null && newHash !== lastSnapshotHash) {
+        showBanner('🏌️ Ergebnisse wurden aktualisiert');
+      }
+      lastSnapshotHash = newHash;
+      state = loadState(newData);
+      recalcAndRender();
+    },
+    (err) => {
+      console.error('Firestore onSnapshot error:', err);
+      setStatus('loading');
+      // Fallback: Legacy-Pfad versuchen (Migration von altem Pfad)
+      tryLegacyMigration();
+    }
+  );
+}
+
+// Migration: Daten vom alten Pfad (tournaments/mfw2026) in neuen Pfad kopieren
+function tryLegacyMigration() {
+  db.collection('tournaments').doc('mfw2026').get().then(doc => {
+    if (doc.exists) {
+      getDocRef('2026').set(doc.data()).then(() => {
+        console.log('Migration von Legacy-Pfad erfolgreich');
+      });
+    }
+  }).catch(() => {});
+}
 
 // ---- CALCULATIONS ----
 
@@ -663,6 +852,7 @@ function renderQualiRounds() {
   state.qualiRounds.forEach((round, ri) => {
     const cardId = `quali-card-${ri}`;
     let card = document.getElementById(cardId);
+    const isEmpty = !isRoundPlayed(round);
 
     // Karte neu erstellen falls noch nicht vorhanden
     if (!card) {
@@ -673,6 +863,13 @@ function renderQualiRounds() {
       const header = document.createElement('div');
       header.className = 'card-header';
       header.id = `quali-header-${ri}`;
+      // Klick auf Header klappt leere Runden auf/zu
+      header.addEventListener('click', (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        if (card.classList.contains('round-empty')) {
+          card.classList.toggle('expanded');
+        }
+      });
       card.appendChild(header);
 
       const tableWrap = document.createElement('div');
@@ -687,12 +884,19 @@ function renderQualiRounds() {
       container.appendChild(card);
     }
 
+    // Leere Runden ausgrauen (aber nicht wenn gerade expanded)
+    if (isEmpty && !card.classList.contains('expanded')) {
+      card.classList.add('round-empty');
+    } else if (!isEmpty) {
+      card.classList.remove('round-empty', 'expanded');
+    }
+
     // Header aktualisieren – aber nur wenn kein Input darin fokussiert ist
     const header = document.getElementById(`quali-header-${ri}`);
     const activeInHeader = header.contains(document.activeElement);
     if (!activeInHeader) {
       if (round.fixed) {
-        header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span><span class="round-date">${round.date}</span>`;
+        header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span><span class="round-date">${round.date}</span>${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}`;
       } else {
         const nameVal = round.name === 'tbd' ? '' : round.name;
         const dateVal = round.date === 'tt.mm.26' ? '' : round.date;
@@ -700,8 +904,8 @@ function renderQualiRounds() {
           <span class="round-name">${ri+1}.</span>
           <input type="text" placeholder="Platzname" value="${nameVal}" data-qi="${ri}" data-field="name" style="flex:1;margin:0 8px;">
           <input type="text" placeholder="tt.mm.jj" value="${dateVal}" data-qi="${ri}" data-field="date" style="width:90px;">
+          ${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}
         `;
-        // Events neu anhängen
         header.querySelectorAll('input[data-field]').forEach(inp => {
           inp.addEventListener('input', e => {
             if (!isUnlocked) return;
@@ -942,6 +1146,77 @@ function renderGesamt(gesamtData) {
   });
 }
 
+// ---- CHART ----
+let qualiChartInstance = null;
+
+function renderChart() {
+  const playedRounds = state.qualiRounds
+    .map((r, i) => ({ round: r, idx: i }))
+    .filter(({ round }) => isRoundPlayed(round));
+
+  if (playedRounds.length < 1) {
+    document.getElementById('sec-chart').style.display = 'none';
+    return;
+  }
+  document.getElementById('sec-chart').style.display = '';
+
+  const labels = playedRounds.map(({ round, idx }) => {
+    const name = round.name === 'tbd' ? `Runde ${idx+1}` : round.name;
+    return name.length > 18 ? name.substring(0, 16) + '…' : name;
+  });
+
+  // Kumulierte Netto-Punkte (gewertet) pro Spieler über die gespielten Runden
+  const effective = getEffectiveValues();
+  const datasets = PLAYERS.map((player, pi) => {
+    let cumulative = 0;
+    const data = playedRounds.map(({ idx: ri }) => {
+      const d = effective[pi];
+      const isStruck = d.streichRoundIdx === ri;
+      const val = d.effNetto[ri] || 0;
+      if (!isStruck) cumulative += val;
+      return cumulative;
+    });
+    return {
+      label: player,
+      data,
+      borderColor: PLAYER_COLORS[pi],
+      backgroundColor: PLAYER_COLORS[pi] + '22',
+      borderWidth: 2.5,
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      tension: 0.3,
+      fill: false,
+    };
+  });
+
+  const ctx = document.getElementById('qualiChart').getContext('2d');
+  if (qualiChartInstance) qualiChartInstance.destroy();
+  qualiChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'top', labels: { font: { family: 'Inter', size: 13 }, usePointStyle: true } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} Pkt. kumuliert`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: false,
+          title: { display: true, text: 'Netto Punkte (kumuliert)', font: { size: 12 } },
+          grid: { color: '#f0f0f0' }
+        },
+        x: { grid: { color: '#f0f0f0' } }
+      }
+    }
+  });
+}
+
 function recalcAndRender() {
   const qualiData = calcQuali();
   const finalData = calcFinal();
@@ -952,31 +1227,10 @@ function recalcAndRender() {
   renderFinalRounds();
   renderQualiSummary(qualiData);
   renderFinalSummary(finalData);
+  renderChart();
 
   attachInputListeners();
   updateInputState();
-}
-
-function attachInputListeners() {
-  document.querySelectorAll('input[data-type]').forEach(inp => {
-    inp.addEventListener('change', e => {
-      if (!isUnlocked) return; // read-only when locked
-      const type = e.target.dataset.type;
-      const ri = parseInt(e.target.dataset.ri);
-      const pi = parseInt(e.target.dataset.pi);
-      const score = e.target.dataset.score;
-      const val = Math.max(0, parseInt(e.target.value) || 0);
-      e.target.value = val;
-
-      if (type === 'quali') {
-        state.qualiRounds[ri][score][pi] = val;
-      } else {
-        state.finalRounds[ri][score][pi] = val;
-      }
-      saveState();
-      recalcAndRender();
-    });
-  });
 }
 
 // Service Worker registrieren
@@ -987,8 +1241,63 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Versionsnummer anzeigen
+// Init
 document.getElementById('appVersion').textContent = APP_VERSION;
+initSeasonSelector();
+startListener();
+
+function attachInputListeners() {
+  const allInputs = Array.from(document.querySelectorAll('input[data-type]'));
+
+  allInputs.forEach((inp, idx) => {
+    // Sofortige Neuberechnung beim Tippen (input-Event)
+    inp.addEventListener('input', e => {
+      if (!isUnlocked) return;
+      const type = e.target.dataset.type;
+      const ri = parseInt(e.target.dataset.ri);
+      const pi = parseInt(e.target.dataset.pi);
+      const score = e.target.dataset.score;
+      const val = Math.max(0, parseInt(e.target.value) || 0);
+      if (type === 'quali') {
+        state.qualiRounds[ri][score][pi] = val;
+      } else {
+        state.finalRounds[ri][score][pi] = val;
+      }
+      recalcAndRender();
+    });
+
+    // Speichern beim Verlassen des Feldes
+    inp.addEventListener('change', e => {
+      if (!isUnlocked) return;
+      const type = e.target.dataset.type;
+      const ri = parseInt(e.target.dataset.ri);
+      const pi = parseInt(e.target.dataset.pi);
+      const score = e.target.dataset.score;
+      const val = Math.max(0, parseInt(e.target.value) || 0);
+      e.target.value = val;
+      if (type === 'quali') {
+        state.qualiRounds[ri][score][pi] = val;
+      } else {
+        state.finalRounds[ri][score][pi] = val;
+      }
+      saveState();
+    });
+
+    // Enter/Tab-Navigation: nächsten Input fokussieren
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
+        e.preventDefault();
+        const next = allInputs[idx + 1];
+        if (next) next.focus();
+      } else if (e.key === 'Tab' && e.shiftKey) {
+        e.preventDefault();
+        const prev = allInputs[idx - 1];
+        if (prev) prev.focus();
+      }
+    });
+  });
+}
+
 </script>
 </body>
 </html>
