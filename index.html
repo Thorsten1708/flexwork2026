@@ -489,17 +489,23 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // ---- MULTI-SEASON ARCHITECTURE ----
-// Firestore path: seasons/{seasonId}/tournaments/{tournamentId}
-// Legacy path (2026): tournaments/mfw2026  → auto-migrated on first load
+// Firestore paths:
+//   Saison 2026 (legacy): tournaments/mfw2026
+//   Neue Saisons:         seasons/{seasonId}/tournaments/{tournamentId}
 const SEASONS = {
-  '2026': { label: 'Saison 2026', tournamentId: 'mfw2026' },
+  '2026': { label: 'Saison 2026', legacy: true, legacyDoc: 'mfw2026' },
   // Neue Saisons hier eintragen, z.B.:
-  // '2027': { label: 'Saison 2027', tournamentId: 'mfw2027' },
+  // '2027': { label: 'Saison 2027', legacy: false, tournamentId: 'mfw2027' },
 };
 let currentSeason = '2026';
 
 function getDocRef(seasonId) {
-  return db.collection('seasons').doc(seasonId).collection('tournaments').doc(SEASONS[seasonId].tournamentId);
+  const s = SEASONS[seasonId];
+  if (s.legacy) {
+    // Alter Pfad – bleibt für 2026 erhalten
+    return db.collection('tournaments').doc(s.legacyDoc);
+  }
+  return db.collection('seasons').doc(seasonId).collection('tournaments').doc(s.tournamentId);
 }
 
 function switchSeason(seasonId) {
@@ -661,28 +667,12 @@ let state = {
 let activeListener = null;
 
 function startListener() {
-  // Beim Start: prüfen ob neuer Pfad Daten hat, sonst vom Legacy-Pfad migrieren
-  getDocRef(currentSeason).get().then(doc => {
-    if (!doc.exists) {
-      // Neuer Pfad leer → Legacy-Daten kopieren
-      db.collection('tournaments').doc('mfw2026').get().then(legacyDoc => {
-        if (legacyDoc.exists) {
-          console.log('Migriere Daten vom Legacy-Pfad...');
-          getDocRef(currentSeason).set(legacyDoc.data()).then(() => {
-            console.log('Migration erfolgreich');
-          });
-        }
-      }).catch(err => console.error('Legacy-Migration fehlgeschlagen:', err));
-    }
-  }).catch(() => {});
-
   activeListener = getDocRef(currentSeason).onSnapshot(
     (doc) => {
       setStatus('connected');
       if (isSaving) return;
       const newData = doc.exists ? doc.data() : null;
       const newHash = stateHash(newData);
-      // Zeige Banner wenn sich Daten geändert haben (nicht beim ersten Load)
       if (lastSnapshotHash !== null && newHash !== lastSnapshotHash) {
         showBanner('🏌️ Ergebnisse wurden aktualisiert');
       }
