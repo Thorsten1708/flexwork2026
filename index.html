@@ -336,8 +336,31 @@
   .tournament-page { display: block; }
   .tournament-page.hidden { display: none; }
 
-  /* Hall of Fame */
-  .hof-table th { background: #1a1a1a; color: white; }
+  /* Hall of Fame Mobile */
+  .hof-mobile { display: none; }
+  .hof-desktop { display: block; }
+  .hof-season-card {
+    background: white; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin-bottom: 10px; overflow: hidden;
+  }
+  .hof-season-header {
+    background: #1a1a1a; color: white; padding: 8px 14px;
+    font-weight: 700; font-size: 14px;
+  }
+  .hof-season-body { padding: 6px 0; }
+  .hof-season-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 14px; border-bottom: 1px solid #f0f0f0; font-size: 14px;
+  }
+  .hof-season-row:last-child { border-bottom: none; }
+  .hof-season-medal { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
+  .hof-season-name { flex: 1; font-weight: 600; }
+  .hof-season-pts { font-weight: 700; font-size: 15px; }
+
+  @media (max-width: 700px) {
+    .hof-mobile { display: block; }
+    .hof-desktop { display: none; }
+  }
   .hof-table .season-winner td { background: #fffbe6; }
   .hof-table td.hof-gold { background: #ffd700 !important; font-weight: 700; color: #5a3e00; }
   .hof-table td.hof-silver { background: #e8e8e8 !important; font-weight: 700; }
@@ -572,22 +595,23 @@
   <!-- Hall of Fame -->
   <section id="sec-hof">
     <div class="section-title">🏆 Hall of Fame</div>
-    <div class="card">
+        <div class="card hof-desktop">
       <div class="table-scroll">
         <table class="hof-table" id="tbl-hof">
           <thead>
             <tr>
               <th>Saison</th>
-              <th>🥇 Platz 1</th><th>Punkte</th>
-              <th>🥈 Platz 2</th><th>Punkte</th>
-              <th>🥉 Platz 3</th><th>Punkte</th>
-              <th>4. Platz</th><th>Punkte</th>
+              <th colspan="2">🥇 Sieger</th>
+              <th colspan="2">🥈 2. Platz</th>
+              <th colspan="2">🥉 3. Platz</th>
+              <th colspan="2">4. Platz</th>
             </tr>
           </thead>
           <tbody id="tbody-hof"></tbody>
         </table>
       </div>
     </div>
+    <div class="hof-mobile" id="hof-mobile"></div>
     <!-- Gesamt-Siege -->
     <div class="section-title" style="margin-top:24px;">🎖️ Saison-Siege gesamt</div>
     <div class="card">
@@ -685,7 +709,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '3.8';
+const APP_VERSION = '3.9';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1335,15 +1359,16 @@ async function loadAllStats() {
     statsPage.innerHTML = `
       <section id="sec-hof">
         <div class="section-title">🏆 Hall of Fame</div>
-        <div class="card"><div class="table-scroll">
+        <div class="card hof-desktop"><div class="table-scroll">
           <table class="hof-table"><thead><tr>
             <th>Saison</th>
-            <th>🥇 Platz 1</th><th>Punkte</th>
-            <th>🥈 Platz 2</th><th>Punkte</th>
-            <th>🥉 Platz 3</th><th>Punkte</th>
-            <th>4. Platz</th><th>Punkte</th>
+            <th colspan="2">🥇 Sieger</th>
+            <th colspan="2">🥈 2. Platz</th>
+            <th colspan="2">🥉 3. Platz</th>
+            <th colspan="2">4. Platz</th>
           </tr></thead><tbody id="tbody-hof"></tbody></table>
         </div></div>
+        <div class="hof-mobile" id="hof-mobile"></div>
         <div class="section-title" style="margin-top:24px;">🎖️ Saison-Siege gesamt</div>
         <div class="card"><div class="table-scroll">
           <table class="hof-table"><thead><tr>
@@ -1425,6 +1450,25 @@ function renderHallOfFame() {
         `<td class="${medalColors[rank]}">${item.p}</td><td class="${medalColors[rank]}">${item.v}</td>`
       ).join('');
     tbody.appendChild(tr);
+
+    // Mobile Karte
+    const mobileContainer = document.getElementById('hof-mobile');
+    if (mobileContainer) {
+      const medals = ['🥇','🥈','🥉','4.'];
+      const bgColors = ['#b8860b','#666','#8B4513','#333'];
+      const card = document.createElement('div');
+      card.className = 'hof-season-card';
+      card.innerHTML = `<div class="hof-season-header">Saison ${sid}</div>
+        <div class="hof-season-body">
+          ${sorted.map((item, rank) => `
+            <div class="hof-season-row" style="${rank===0?'background:#fffbe6;':''}">
+              <span class="hof-season-medal">${medals[rank]}</span>
+              <span class="hof-season-name" style="color:${PLAYER_COLORS[item.i]}">${item.p}</span>
+              <span class="hof-season-pts">${item.v} Pkt.</span>
+            </div>`).join('')}
+        </div>`;
+      mobileContainer.appendChild(card);
+    }
   });
 
   // Gesamt-Siege Tabelle
@@ -1582,21 +1626,46 @@ function renderH2H() {
 }
 
 // ---- PLATZKÖNIGE ----
+function normalizeVenueName(name) {
+  // Bad Griesbach Varianten zusammenfassen
+  const n = name.trim();
+  // Entferne Rundennummer und Wochentag: "Bad Griesbach I (Do) – Porsche" → "Bad Griesbach – Porsche"
+  const bgMatch = n.match(/Bad Griesbach\s*(?:[IVX]+\s*\([^)]+\)\s*[–-]\s*)?[–-]?\s*(Porsche|Uttlau|Brunnwies|Beckenbauer|Sagmühle)/i);
+  if (bgMatch) return 'Bad Griesbach – ' + bgMatch[1];
+  // Andere Plätze: nur Klammern und Nummern entfernen
+  return n.replace(/\s*[IVX]+\s*\([^)]+\)\s*[–-]\s*/g, '').trim();
+}
+
 function renderVenueKings() {
-  // Plätze sammeln die mehrfach gespielt wurden
-  const venueMap = {}; // name → [{season, pi, netto}]
+  const venueMap = {};
 
   Object.entries(allSeasonsData).forEach(([sid, data]) => {
     [...data.qualiRounds, ...data.finalRounds].forEach(r => {
       if (!r.netto.some(v => v > 0)) return;
-      // Platzname normalisieren (lowercase, trimmed)
-      const key = r.name.trim().toLowerCase().replace(/\s+/g,' ');
-      if (!venueMap[key]) venueMap[key] = { displayName: r.name, rounds: [] };
-      venueMap[key].rounds.push({ season: sid, netto: [...r.netto] });
+      const normalized = normalizeVenueName(r.name);
+      const key = normalized.toLowerCase();
+      if (!venueMap[key]) venueMap[key] = { displayName: normalized, rounds: [] };
+      // Runden der gleichen Saison auf dem gleichen Platz zusammenfassen (Durchschnitt)
+      const existing = venueMap[key].rounds.find(x => x.season === sid);
+      if (existing) {
+        // Werte addieren für späteren Durchschnitt
+        existing.netto = existing.netto.map((v, i) => v + r.netto[i]);
+        existing.count++;
+      } else {
+        venueMap[key].rounds.push({ season: sid, netto: [...r.netto], count: 1 });
+      }
     });
   });
 
-  // Nur Plätze mit ≥2 Einträgen
+  // Durchschnitt berechnen wenn mehrere Runden pro Saison
+  Object.values(venueMap).forEach(venue => {
+    venue.rounds.forEach(r => {
+      if (r.count > 1) {
+        r.netto = r.netto.map(v => Math.round(v / r.count));
+      }
+    });
+  });
+
   const venues = Object.values(venueMap).filter(v => v.rounds.length >= 2);
   venues.sort((a,b) => b.rounds.length - a.rounds.length);
 
@@ -1609,7 +1678,6 @@ function renderVenueKings() {
   }
 
   venues.forEach(venue => {
-    // Durchschnitt pro Spieler
     const avgs = PLAYERS.map((_, pi) => {
       const vals = venue.rounds.map(r => r.netto[pi]).filter(v => v > 0);
       return vals.length > 0 ? vals.reduce((s,v) => s+v, 0) / vals.length : null;
@@ -1620,15 +1688,17 @@ function renderVenueKings() {
     card.className = 'card';
     card.style.marginBottom = '12px';
 
+    const seasonsSorted = [...venue.rounds].sort((a,b) => b.season - a.season);
+
     let html = `<div class="card-header" style="background:#2E7D32;">
       <span class="round-name">⛳ ${venue.displayName}</span>
-      <span class="round-date">${venue.rounds.length}× gespielt (${venue.rounds.map(r=>r.season).join(', ')})</span>
+      <span class="round-date">${venue.rounds.length}× gespielt (${seasonsSorted.map(r=>r.season).join(', ')})</span>
     </div>
-    <div class="table-scroll"><table class="venue-table" style="width:100%;border-collapse:collapse;">
-      <thead><tr><th style="text-align:left;padding:8px 12px;">Spieler</th>`;
+    <div class="table-scroll"><table style="width:100%;border-collapse:collapse;">
+      <thead><tr><th style="background:#2E7D32;color:white;text-align:left;padding:8px 12px;">Spieler</th>`;
 
-    venue.rounds.forEach(r => { html += `<th style="padding:8px 12px;">${r.season}</th>`; });
-    html += `<th style="padding:8px 12px;">Ø Netto</th></tr></thead><tbody>`;
+    seasonsSorted.forEach(r => { html += `<th style="background:#2E7D32;color:white;padding:8px 12px;text-align:center;">${r.season}</th>`; });
+    html += `<th style="background:#2E7D32;color:white;padding:8px 12px;text-align:center;">Ø Netto</th></tr></thead><tbody>`;
 
     PLAYERS.forEach((player, pi) => {
       const isBest = avgs[pi] === maxAvg && avgs[pi] !== null;
@@ -1637,12 +1707,12 @@ function renderVenueKings() {
           <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${PLAYER_COLORS[pi]};margin-right:6px;"></span>
           ${player}${isBest ? ' 👑' : ''}
         </td>`;
-      venue.rounds.forEach(r => {
+      seasonsSorted.forEach(r => {
         const v = r.netto[pi];
         html += `<td style="text-align:center;padding:8px 12px;border-bottom:1px solid #f0f0f0;">${v > 0 ? v : '–'}</td>`;
       });
       const avgStr = avgs[pi] !== null ? avgs[pi].toFixed(1) : '–';
-      html += `<td class="${isBest ? 'venue-best' : ''}" style="text-align:center;padding:8px 12px;border-bottom:1px solid #f0f0f0;"><strong>${avgStr}</strong></td></tr>`;
+      html += `<td style="text-align:center;padding:8px 12px;border-bottom:1px solid #f0f0f0;${isBest ? 'background:#e8f5e9;font-weight:700;color:#2E7D32;' : ''}"><strong>${avgStr}</strong></td></tr>`;
     });
 
     html += `</tbody></table></div>`;
