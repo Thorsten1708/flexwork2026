@@ -447,11 +447,14 @@
       <div class="status-dot loading" id="statusDot"></div>
       <span id="statusText">…</span>
     </div>
-    <div style="font-size:12px;opacity:0.9;background:rgba(255,255,255,0.2);padding:3px 7px;border-radius:4px;white-space:nowrap;">v<span id="appVersion"></span></div>
     <button class="pdf-btn" onclick="exportPDF()" title="PDF exportieren">🖨️ PDF</button>
     <button class="lock-btn" id="lockBtn" onclick="toggleLock()">🔒</button>
   </div>
 </header>
+<!-- Versionsanzeige unter dem Header -->
+<div style="background:var(--red-dark);color:rgba(255,255,255,0.7);text-align:right;font-size:11px;padding:2px 16px;">
+  Version <span id="appVersion"></span>
+</div>
 
 <!-- TAB NAVIGATION -->
 <nav class="tab-nav">
@@ -682,7 +685,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '3.6';
+const APP_VERSION = '3.7';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -820,21 +823,29 @@ let state = {
 let activeListener = null;
 
 function startListener() {
+  console.log('[DEBUG] startListener() aufgerufen für Saison:', currentSeason);
   activeListener = getDocRef(currentSeason).onSnapshot(
     (doc) => {
+      console.log('[DEBUG] Snapshot empfangen, exists:', doc.exists);
       setStatus('connected');
-      if (isSaving) return;
+      if (isSaving) {
+        console.log('[DEBUG] isSaving=true, überspringe Render');
+        return;
+      }
       const newData = doc.exists ? doc.data() : null;
+      console.log('[DEBUG] Daten geladen:', newData ? 'JA' : 'NEIN', newData ? newData.qualiRounds.length + ' Qualirunden' : '');
       const newHash = stateHash(newData);
       if (lastSnapshotHash !== null && newHash !== lastSnapshotHash) {
         showBanner('🏌️ Ergebnisse wurden aktualisiert');
       }
       lastSnapshotHash = newHash;
       state = loadState(newData);
+      console.log('[DEBUG] State geladen, rufe recalcAndRender()');
       recalcAndRender();
+      console.log('[DEBUG] recalcAndRender() abgeschlossen');
     },
     (err) => {
-      console.error('Firestore onSnapshot error:', err);
+      console.error('[DEBUG] Firestore onSnapshot error:', err);
       setStatus('loading');
       // Fallback: Default-State rendern damit die App nicht leer bleibt
       recalcAndRender();
