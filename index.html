@@ -247,11 +247,18 @@
   .col-combined-bg { background: #f0f2ff; }
 
   @media (max-width: 700px) {
-    header h1 { font-size: 17px; }
+    header { flex-wrap: wrap; padding: 8px 12px; }
+    header .logo { font-size: 18px; padding: 3px 6px; }
+    header h1 { font-size: 14px; }
+    header p { font-size: 10px; }
+    .header-right { width: 100%; justify-content: flex-end; gap: 5px; margin-top: 4px; }
+    .season-select { font-size: 12px; padding: 4px 6px; }
+    .pdf-btn { font-size: 12px; padding: 4px 8px; }
     input[type=number] { width: 52px; }
     td, th { padding: 6px 6px; font-size: 13px; white-space: nowrap; }
     .gesamt-mobile { display: block; }
     .gesamt-desktop { display: none; }
+    .collapse-hint { display: none; }
   }
 
   /* Lock button & Firebase status */
@@ -531,7 +538,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '3.0';
+const APP_VERSION = '3.1';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -638,12 +645,10 @@ function saveState() {
   isSaving = true;
   getDocRef(currentSeason).set(state)
     .then(() => {
-      showToast('✓ Gespeichert');
       setTimeout(() => { isSaving = false; }, 1200);
     })
     .catch(err => {
       console.error('Firestore save error:', err);
-      showToast('⚠️ Fehler beim Speichern');
       isSaving = false;
     });
 }
@@ -1242,7 +1247,8 @@ function attachInputListeners() {
   const allInputs = Array.from(document.querySelectorAll('input[data-type]'));
 
   allInputs.forEach((inp, idx) => {
-    // Sofortige Neuberechnung beim Tippen (input-Event)
+    // Sofortige Neuberechnung beim Tippen – KEIN DOM-Rebuild (kein recalcAndRender)
+    // damit der Fokus nicht verloren geht
     inp.addEventListener('input', e => {
       if (!isUnlocked) return;
       const type = e.target.dataset.type;
@@ -1255,10 +1261,11 @@ function attachInputListeners() {
       } else {
         state.finalRounds[ri][score][pi] = val;
       }
-      recalcAndRender();
+      // Nur Summaries + Chart neu rendern, nicht die Eingabe-Karten
+      recalcSummariesOnly();
     });
 
-    // Speichern beim Verlassen des Feldes
+    // Speichern + vollständiger Re-render beim Verlassen des Feldes
     inp.addEventListener('change', e => {
       if (!isUnlocked) return;
       const type = e.target.dataset.type;
@@ -1273,6 +1280,7 @@ function attachInputListeners() {
         state.finalRounds[ri][score][pi] = val;
       }
       saveState();
+      recalcAndRender();
     });
 
     // Enter/Tab-Navigation: nächsten Input fokussieren
@@ -1288,6 +1296,17 @@ function attachInputListeners() {
       }
     });
   });
+}
+
+// Nur Summaries + Chart neu berechnen und rendern (ohne Eingabe-Karten)
+function recalcSummariesOnly() {
+  const qualiData = calcQuali();
+  const finalData = calcFinal();
+  const gesamtData = calcGesamt(qualiData, finalData);
+  renderGesamt(gesamtData);
+  renderQualiSummary(qualiData);
+  renderFinalSummary(finalData);
+  renderChart();
 }
 
 </script>
