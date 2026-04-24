@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Meeting@FlexWork 2026 – Golf Turnier</title>
+<title>Meeting@FlexWork – Golf Turnier</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#CC0000">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -315,7 +315,78 @@
   .chart-card { background: white; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 16px; margin-bottom: 16px; }
   .chart-card canvas { max-height: 280px; }
 
-  /* ---- SEASON SELECTOR ---- */
+  /* ---- TABS ---- */
+  .tab-nav {
+    background: var(--red-dark);
+    display: flex;
+    gap: 0;
+    padding: 0 16px;
+  }
+  .tab-btn {
+    background: none; border: none; color: rgba(255,255,255,0.7);
+    padding: 10px 18px; font-size: 14px; font-weight: 600; font-family: inherit;
+    cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.15s;
+  }
+  .tab-btn:hover { color: white; }
+  .tab-btn.active { color: white; border-bottom-color: white; }
+
+  /* ---- STATS PAGE ---- */
+  .stats-page { display: none; }
+  .stats-page.active { display: block; }
+  .tournament-page { display: block; }
+  .tournament-page.hidden { display: none; }
+
+  /* Hall of Fame */
+  .hof-table th { background: #1a1a1a; color: white; }
+  .hof-table .season-winner td { background: #fffbe6; }
+  .hof-table td.hof-gold { background: #ffd700 !important; font-weight: 700; color: #5a3e00; }
+  .hof-table td.hof-silver { background: #e8e8e8 !important; font-weight: 700; }
+  .hof-table td.hof-bronze { background: #f5deb3 !important; font-weight: 700; }
+  .hof-total-row td { background: #1a1a1a !important; color: white !important; font-weight: 700; }
+
+  /* Spieler-Profile */
+  .player-profiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 16px; }
+  .player-profile-card {
+    background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  .player-profile-header {
+    padding: 14px 16px; color: white; display: flex; align-items: center; gap: 10px;
+  }
+  .player-profile-avatar {
+    width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.25);
+    display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .player-profile-name { font-size: 17px; font-weight: 700; }
+  .player-profile-subtitle { font-size: 11px; opacity: 0.8; }
+  .player-profile-body { padding: 12px 16px; }
+  .profile-stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px;
+  }
+  .profile-stat-row:last-child { border-bottom: none; }
+  .profile-stat-row span { color: var(--muted); }
+  .profile-stat-row strong { font-size: 14px; }
+  .profile-chart-wrap { padding: 8px 16px 16px; }
+
+  /* Head-to-Head Matrix */
+  .h2h-table { width: 100%; border-collapse: collapse; }
+  .h2h-table th { background: #1a1a1a; color: white; padding: 10px 12px; font-size: 13px; text-align: center; }
+  .h2h-table th:first-child { text-align: left; }
+  .h2h-table td { padding: 10px 12px; text-align: center; font-size: 14px; border-bottom: 1px solid var(--border); }
+  .h2h-table td:first-child { text-align: left; font-weight: 600; }
+  .h2h-table .h2h-self { background: #f0f0f0; color: #999; }
+  .h2h-win { color: #2E7D32; font-weight: 700; }
+  .h2h-lose { color: #CC0000; }
+
+  /* Platzkönige */
+  .venue-table th { background: #2E7D32; color: white; }
+  .venue-table td.venue-best { background: #e8f5e9; font-weight: 700; color: #2E7D32; }
+
+  /* Stats loading */
+  .stats-loading { text-align: center; padding: 48px; color: var(--muted); font-size: 15px; }
+
   .season-select {
     background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
     color: white; border-radius: 6px; padding: 5px 8px; font-size: 13px;
@@ -381,7 +452,17 @@
     <button class="lock-btn" id="lockBtn" onclick="toggleLock()">🔒</button>
   </div>
 </header>
+
+<!-- TAB NAVIGATION -->
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('tournament')" id="tab-tournament">⛳ Turnier</button>
+  <button class="tab-btn" onclick="switchTab('stats')" id="tab-stats">📊 Statistik</button>
+</nav>
+
 <main>
+
+<!-- ==================== TURNIER-SEITE ==================== -->
+<div class="tournament-page" id="page-tournament">
 
 <!-- GESAMTERGEBNIS (oben) -->
 <section id="sec-gesamtergebnis">
@@ -480,6 +561,67 @@
   </div>
 </section>
 
+</div><!-- end tournament-page -->
+
+<!-- ==================== STATISTIK-SEITE ==================== -->
+<div class="stats-page" id="page-stats">
+
+  <!-- Hall of Fame -->
+  <section id="sec-hof">
+    <div class="section-title">🏆 Hall of Fame</div>
+    <div class="card">
+      <div class="table-scroll">
+        <table class="hof-table" id="tbl-hof">
+          <thead>
+            <tr>
+              <th>Saison</th>
+              <th>🥇 Platz 1</th><th>Punkte</th>
+              <th>🥈 Platz 2</th><th>Punkte</th>
+              <th>🥉 Platz 3</th><th>Punkte</th>
+              <th>4. Platz</th><th>Punkte</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-hof"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Gesamt-Siege -->
+    <div class="section-title" style="margin-top:24px;">🎖️ Saison-Siege gesamt</div>
+    <div class="card">
+      <div class="table-scroll">
+        <table class="hof-table" id="tbl-siege">
+          <thead>
+            <tr><th>Spieler</th><th>🥇 Siege</th><th>🥈 2. Plätze</th><th>🥉 3. Plätze</th><th>4. Plätze</th><th>Ø Netto/Saison</th></tr>
+          </thead>
+          <tbody id="tbody-siege"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Spieler-Profile -->
+  <section id="sec-profiles">
+    <div class="section-title">👤 Spieler-Profile</div>
+    <div class="player-profiles" id="player-profiles"></div>
+  </section>
+
+  <!-- Head-to-Head + Platzkönige -->
+  <section id="sec-h2h">
+    <div class="section-title">⚔️ Direktvergleich – Rundensiege</div>
+    <div class="info-box">Wie oft hat jeder Spieler in einer Einzelrunde den höchsten Netto-Score aller Spieler erzielt (alle Saisons, alle Runden).</div>
+    <div class="card">
+      <div class="table-scroll">
+        <table class="h2h-table" id="tbl-h2h"></table>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:24px;">🏌️ Platzkönige</div>
+    <div class="info-box">Plätze die in mindestens 2 Saisons gespielt wurden. Bester Durchschnitt Netto pro Spieler.</div>
+    <div id="venue-tables"></div>
+  </section>
+
+</div><!-- end stats-page -->
+
 </main>
 
 <script>
@@ -540,7 +682,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '3.4';
+const APP_VERSION = '3.5';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1145,7 +1287,354 @@ function renderGesamt(gesamtData) {
   });
 }
 
-// ---- CHART ----
+// ---- TAB SWITCHING ----
+function switchTab(tab) {
+  document.getElementById('page-tournament').classList.toggle('hidden', tab !== 'tournament');
+  document.getElementById('page-stats').classList.toggle('active', tab === 'stats');
+  document.getElementById('tab-tournament').classList.toggle('active', tab === 'tournament');
+  document.getElementById('tab-stats').classList.toggle('active', tab === 'stats');
+  if (tab === 'stats' && !statsLoaded) loadAllStats();
+}
+
+// ---- STATS ENGINE ----
+let statsLoaded = false;
+let allSeasonsData = {}; // { '2022': {qualiRounds, finalRounds}, ... }
+const PLAYER_COLORS = ['#CC0000', '#1565C0', '#2E7D32', '#F57F17'];
+const profileCharts = {};
+
+async function loadAllStats() {
+  const statsPage = document.getElementById('page-stats');
+  statsPage.innerHTML = '<div class="stats-loading">⏳ Lade alle Saisons…</div>';
+
+  try {
+    const seasonIds = Object.keys(SEASONS).sort((a,b) => b - a);
+    const promises = seasonIds.map(id => getDocRef(id).get().then(doc => ({ id, data: doc.exists ? doc.data() : null })));
+    const results = await Promise.all(promises);
+
+    results.forEach(({ id, data }) => {
+      if (data) allSeasonsData[id] = data;
+    });
+
+    // HTML wiederherstellen
+    statsPage.innerHTML = `
+      <section id="sec-hof">
+        <div class="section-title">🏆 Hall of Fame</div>
+        <div class="card"><div class="table-scroll">
+          <table class="hof-table"><thead><tr>
+            <th>Saison</th>
+            <th>🥇 Platz 1</th><th>Punkte</th>
+            <th>🥈 Platz 2</th><th>Punkte</th>
+            <th>🥉 Platz 3</th><th>Punkte</th>
+            <th>4. Platz</th><th>Punkte</th>
+          </tr></thead><tbody id="tbody-hof"></tbody></table>
+        </div></div>
+        <div class="section-title" style="margin-top:24px;">🎖️ Saison-Siege gesamt</div>
+        <div class="card"><div class="table-scroll">
+          <table class="hof-table"><thead><tr>
+            <th>Spieler</th><th>🥇 Siege</th><th>🥈 2. Plätze</th><th>🥉 3. Plätze</th><th>4. Plätze</th><th>Ø Netto/Saison</th>
+          </tr></thead><tbody id="tbody-siege"></tbody></table>
+        </div></div>
+      </section>
+      <section id="sec-profiles">
+        <div class="section-title">👤 Spieler-Profile</div>
+        <div class="player-profiles" id="player-profiles"></div>
+      </section>
+      <section id="sec-h2h">
+        <div class="section-title">⚔️ Direktvergleich – Rundensiege</div>
+        <div class="info-box">Wie oft hat jeder Spieler in einer Einzelrunde den höchsten Netto-Score aller Spieler erzielt (alle Saisons, alle Runden).</div>
+        <div class="card"><div class="table-scroll"><table class="h2h-table" id="tbl-h2h"></table></div></div>
+        <div class="section-title" style="margin-top:24px;">🏌️ Platzkönige</div>
+        <div class="info-box">Plätze die in mindestens 2 Saisons gespielt wurden. Bester Durchschnitt Netto pro Spieler.</div>
+        <div id="venue-tables"></div>
+      </section>`;
+
+    renderHallOfFame();
+    renderPlayerProfiles();
+    renderH2H();
+    renderVenueKings();
+    statsLoaded = true;
+
+  } catch(err) {
+    console.error(err);
+    statsPage.innerHTML = '<div class="stats-loading">❌ Fehler beim Laden der Statistiken.</div>';
+  }
+}
+
+// ---- Hilfsfunktion: Gesamtnetto einer Saison berechnen ----
+function calcSeasonGesamt(data) {
+  if (!data) return PLAYERS.map(() => 0);
+  // Quali: Streicher-Logik vereinfacht (niedrigster Netto-Wert wird gestrichen)
+  const qualiNetto = PLAYERS.map((_, pi) => {
+    const played = data.qualiRounds.filter(r => r.netto.some(v => v > 0));
+    const vals = played.map(r => {
+      const v = r.netto[pi];
+      return v > 0 ? v : Math.min(...PLAYERS.map((_,i) => i !== pi && r.netto[i] > 0 ? r.netto[i] : 999).filter(x => x < 999), 0);
+    }).filter(v => v > 0);
+    if (vals.length === 0) return 0;
+    const minVal = Math.min(...vals);
+    return vals.reduce((s, v) => s + v, 0) - minVal;
+  });
+  const finalNetto = PLAYERS.map((_, pi) =>
+    data.finalRounds.reduce((s, r) => s + (r.netto[pi] || 0), 0)
+  );
+  return PLAYERS.map((_, pi) => qualiNetto[pi] + finalNetto[pi] * 2);
+}
+
+// ---- HALL OF FAME ----
+function renderHallOfFame() {
+  const seasonIds = Object.keys(allSeasonsData).sort((a,b) => b - a);
+  const tbody = document.getElementById('tbody-hof');
+  tbody.innerHTML = '';
+
+  // Siege-Zähler
+  const siegeCount = PLAYERS.map(() => [0,0,0,0]); // [1.,2.,3.,4.]
+  const nettoSum = PLAYERS.map(() => 0);
+  const seasonCount = PLAYERS.map(() => 0);
+
+  seasonIds.forEach(sid => {
+    const data = allSeasonsData[sid];
+    const gesamt = calcSeasonGesamt(data);
+    const sorted = PLAYERS.map((p,i) => ({p, i, v: gesamt[i]})).sort((a,b) => b.v - a.v);
+
+    sorted.forEach((item, rank) => {
+      siegeCount[item.i][rank]++;
+      nettoSum[item.i] += item.v;
+      seasonCount[item.i]++;
+    });
+
+    const tr = document.createElement('tr');
+    const medalColors = ['hof-gold','hof-silver','hof-bronze',''];
+    tr.innerHTML = `<td><strong>${sid}</strong></td>` +
+      sorted.map((item, rank) =>
+        `<td class="${medalColors[rank]}">${item.p}</td><td class="${medalColors[rank]}">${item.v}</td>`
+      ).join('');
+    tbody.appendChild(tr);
+  });
+
+  // Gesamt-Siege Tabelle
+  const tbodySiege = document.getElementById('tbody-siege');
+  tbodySiege.innerHTML = '';
+  const siegeSorted = PLAYERS.map((p,i) => ({p, i, siege: siegeCount[i], avg: seasonCount[i] > 0 ? (nettoSum[i]/seasonCount[i]).toFixed(1) : 0}))
+    .sort((a,b) => b.siege[0] - a.siege[0] || b.siege[1] - a.siege[1]);
+
+  siegeSorted.forEach(d => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${PLAYER_COLORS[d.i]};margin-right:6px;"></span><strong>${d.p}</strong></td>
+      <td style="color:#b8860b;font-weight:700;">${d.siege[0]}</td>
+      <td style="color:#666;">${d.siege[1]}</td>
+      <td style="color:#8B4513;">${d.siege[2]}</td>
+      <td>${d.siege[3]}</td>
+      <td><strong>${d.avg}</strong></td>`;
+    tbodySiege.appendChild(tr);
+  });
+}
+
+// ---- SPIELER-PROFILE ----
+function renderPlayerProfiles() {
+  const container = document.getElementById('player-profiles');
+  container.innerHTML = '';
+
+  PLAYERS.forEach((player, pi) => {
+    // Alle gespielten Runden sammeln (Quali + Final, alle Saisons)
+    const allRounds = [];
+    Object.entries(allSeasonsData).forEach(([sid, data]) => {
+      data.qualiRounds.forEach(r => {
+        if (r.netto[pi] > 0) allRounds.push({ type: 'quali', val: r.netto[pi], season: sid, name: r.name });
+      });
+      data.finalRounds.forEach(r => {
+        if (r.netto[pi] > 0) allRounds.push({ type: 'final', val: r.netto[pi], season: sid, name: r.name });
+      });
+    });
+
+    const avg = allRounds.length > 0 ? (allRounds.reduce((s,r) => s+r.val, 0) / allRounds.length).toFixed(1) : '–';
+    const best = allRounds.length > 0 ? Math.max(...allRounds.map(r => r.val)) : '–';
+    const worst = allRounds.length > 0 ? Math.min(...allRounds.map(r => r.val)) : '–';
+    const bestRound = allRounds.find(r => r.val === best);
+    const totalRounds = allRounds.length;
+
+    // Saison-Siege
+    const seasonIds = Object.keys(allSeasonsData).sort((a,b) => b-a);
+    let siege = 0;
+    const seasonNetto = [];
+    seasonIds.forEach(sid => {
+      const gesamt = calcSeasonGesamt(allSeasonsData[sid]);
+      const sorted = [...gesamt].sort((a,b) => b-a);
+      if (sorted[0] === gesamt[pi] && gesamt[pi] > 0) siege++;
+      if (gesamt[pi] > 0) seasonNetto.push({ sid, val: gesamt[pi] });
+    });
+
+    const card = document.createElement('div');
+    card.className = 'player-profile-card';
+    card.innerHTML = `
+      <div class="player-profile-header" style="background:${PLAYER_COLORS[pi]}">
+        <div class="player-profile-avatar">${player[0]}</div>
+        <div>
+          <div class="player-profile-name">${player}</div>
+          <div class="player-profile-subtitle">${totalRounds} Runden gespielt</div>
+        </div>
+      </div>
+      <div class="player-profile-body">
+        <div class="profile-stat-row"><span>Ø Netto/Runde</span><strong>${avg}</strong></div>
+        <div class="profile-stat-row"><span>Beste Runde</span><strong>${best} <small style="color:var(--muted);font-weight:400;">(${bestRound ? bestRound.name.substring(0,15) : ''} ${bestRound ? bestRound.season : ''})</small></strong></div>
+        <div class="profile-stat-row"><span>Schlechteste Runde</span><strong>${worst}</strong></div>
+        <div class="profile-stat-row"><span>Saison-Siege</span><strong style="color:#b8860b;">${siege} 🏆</strong></div>
+      </div>
+      <div class="profile-chart-wrap">
+        <canvas id="profile-chart-${pi}" height="120"></canvas>
+      </div>`;
+    container.appendChild(card);
+
+    // Mini-Chart: Gesamt-Netto pro Saison
+    setTimeout(() => {
+      const ctx = document.getElementById(`profile-chart-${pi}`);
+      if (!ctx) return;
+      if (profileCharts[pi]) profileCharts[pi].destroy();
+      profileCharts[pi] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: seasonNetto.map(s => s.sid).reverse(),
+          datasets: [{
+            label: 'Gesamt Netto',
+            data: seasonNetto.map(s => s.val).reverse(),
+            backgroundColor: PLAYER_COLORS[pi] + '99',
+            borderColor: PLAYER_COLORS[pi],
+            borderWidth: 2,
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: false, grid: { color: '#f0f0f0' }, ticks: { font: { size: 10 } } },
+            x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+          }
+        }
+      });
+    }, 50);
+  });
+}
+
+// ---- HEAD-TO-HEAD RUNDENSIEGE ----
+function renderH2H() {
+  // Für jede Runde: wer hat den höchsten Netto-Score?
+  const wins = PLAYERS.map(() => 0);
+  const totalRounds = { count: 0 };
+
+  Object.values(allSeasonsData).forEach(data => {
+    [...data.qualiRounds, ...data.finalRounds].forEach(r => {
+      if (!r.netto.some(v => v > 0)) return;
+      totalRounds.count++;
+      const maxVal = Math.max(...r.netto);
+      // Bei Gleichstand bekommen alle Gewinner einen Punkt
+      r.netto.forEach((v, pi) => { if (v === maxVal && v > 0) wins[pi]++; });
+    });
+  });
+
+  const table = document.getElementById('tbl-h2h');
+  const sorted = PLAYERS.map((p,i) => ({p, i, wins: wins[i]})).sort((a,b) => b.wins - a.wins);
+
+  table.innerHTML = `<thead><tr>
+    <th>Spieler</th>
+    <th>Rundensiege</th>
+    <th>Anteil</th>
+    <th>Ø Netto alle Runden</th>
+  </tr></thead>`;
+
+  const tbody = document.createElement('tbody');
+  sorted.forEach((d, rank) => {
+    // Ø Netto
+    let sum = 0, cnt = 0;
+    Object.values(allSeasonsData).forEach(data => {
+      [...data.qualiRounds, ...data.finalRounds].forEach(r => {
+        if (r.netto[d.i] > 0) { sum += r.netto[d.i]; cnt++; }
+      });
+    });
+    const avg = cnt > 0 ? (sum/cnt).toFixed(1) : '–';
+    const pct = totalRounds.count > 0 ? ((d.wins / totalRounds.count) * 100).toFixed(0) : 0;
+    const medal = ['🥇','🥈','🥉',''][rank];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${PLAYER_COLORS[d.i]};margin-right:6px;"></span><strong>${d.p}</strong></td>
+      <td><strong>${medal} ${d.wins}</strong></td>
+      <td>${pct}%</td>
+      <td>${avg}</td>`;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+}
+
+// ---- PLATZKÖNIGE ----
+function renderVenueKings() {
+  // Plätze sammeln die mehrfach gespielt wurden
+  const venueMap = {}; // name → [{season, pi, netto}]
+
+  Object.entries(allSeasonsData).forEach(([sid, data]) => {
+    [...data.qualiRounds, ...data.finalRounds].forEach(r => {
+      if (!r.netto.some(v => v > 0)) return;
+      // Platzname normalisieren (lowercase, trimmed)
+      const key = r.name.trim().toLowerCase().replace(/\s+/g,' ');
+      if (!venueMap[key]) venueMap[key] = { displayName: r.name, rounds: [] };
+      venueMap[key].rounds.push({ season: sid, netto: [...r.netto] });
+    });
+  });
+
+  // Nur Plätze mit ≥2 Einträgen
+  const venues = Object.values(venueMap).filter(v => v.rounds.length >= 2);
+  venues.sort((a,b) => b.rounds.length - a.rounds.length);
+
+  const container = document.getElementById('venue-tables');
+  container.innerHTML = '';
+
+  if (venues.length === 0) {
+    container.innerHTML = '<div class="info-box">Noch nicht genug Daten für Platzkönige.</div>';
+    return;
+  }
+
+  venues.forEach(venue => {
+    // Durchschnitt pro Spieler
+    const avgs = PLAYERS.map((_, pi) => {
+      const vals = venue.rounds.map(r => r.netto[pi]).filter(v => v > 0);
+      return vals.length > 0 ? vals.reduce((s,v) => s+v, 0) / vals.length : null;
+    });
+    const maxAvg = Math.max(...avgs.filter(v => v !== null));
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.marginBottom = '12px';
+
+    let html = `<div class="card-header" style="background:#2E7D32;">
+      <span class="round-name">⛳ ${venue.displayName}</span>
+      <span class="round-date">${venue.rounds.length}× gespielt (${venue.rounds.map(r=>r.season).join(', ')})</span>
+    </div>
+    <div class="table-scroll"><table class="venue-table" style="width:100%;border-collapse:collapse;">
+      <thead><tr><th style="text-align:left;padding:8px 12px;">Spieler</th>`;
+
+    venue.rounds.forEach(r => { html += `<th style="padding:8px 12px;">${r.season}</th>`; });
+    html += `<th style="padding:8px 12px;">Ø Netto</th></tr></thead><tbody>`;
+
+    PLAYERS.forEach((player, pi) => {
+      const isBest = avgs[pi] === maxAvg && avgs[pi] !== null;
+      html += `<tr>
+        <td style="padding:8px 12px;font-weight:600;border-bottom:1px solid #f0f0f0;">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${PLAYER_COLORS[pi]};margin-right:6px;"></span>
+          ${player}${isBest ? ' 👑' : ''}
+        </td>`;
+      venue.rounds.forEach(r => {
+        const v = r.netto[pi];
+        html += `<td style="text-align:center;padding:8px 12px;border-bottom:1px solid #f0f0f0;">${v > 0 ? v : '–'}</td>`;
+      });
+      const avgStr = avgs[pi] !== null ? avgs[pi].toFixed(1) : '–';
+      html += `<td class="${isBest ? 'venue-best' : ''}" style="text-align:center;padding:8px 12px;border-bottom:1px solid #f0f0f0;"><strong>${avgStr}</strong></td></tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+    card.innerHTML = html;
+    container.appendChild(card);
+  });
+}
+
 let qualiChartInstance = null;
 
 function renderChart() {
