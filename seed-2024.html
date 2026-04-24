@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Seed 2024 Data</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<h2>Saison 2024 – Daten in Firestore schreiben</h2>
+<button onclick="seedData()" style="font-size:18px;padding:12px 24px;background:#CC0000;color:white;border:none;border-radius:8px;cursor:pointer;">
+  ▶ Jetzt Saison 2024 einspielen
+</button>
+<pre id="log" style="margin-top:20px;background:#f5f5f5;padding:16px;border-radius:8px;font-size:13px;"></pre>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAq4W1dbbwQKst0ZmZOkITJqYMpALukqHQ",
+  authDomain: "flexwork2026.firebaseapp.com",
+  projectId: "flexwork2026",
+  storageBucket: "flexwork2026.firebasestorage.app",
+  messagingSenderId: "618329184932",
+  appId: "1:618329184932:web:6da142379d38c89552a431"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function log(msg) {
+  document.getElementById('log').textContent += msg + '\n';
+}
+
+const data2024 = {
+  qualiRounds: [
+    { name: 'Bad Griesbach - Uttlau', date: '10.09.23', fixed: true,
+      netto: [34, 23, 36, 36], brutto: [22, 9, 17, 16] },
+    { name: 'Wiesbaden Rhein - Main', date: '13.10.23', fixed: true,
+      netto: [30, 34, 33, 33], brutto: [21, 17, 15, 17] },
+    { name: 'Rosenhof', date: '15.03.24', fixed: true,
+      netto: [28, 30, 32, 26], brutto: [18, 14, 14, 14] },
+    { name: 'Kronberg', date: '19.04.24', fixed: true,
+      netto: [38, 38, 38, 38], brutto: [18, 18, 18, 18] },
+    { name: 'ausgefallen', date: '17.05.24', fixed: true,
+      netto: [0, 0, 0, 0], brutto: [0, 0, 0, 0] },
+    { name: 'Bachgrund', date: '21.06.24', fixed: true,
+      netto: [21, 31, 28, 38], brutto: [16, 12, 13, 23] },
+    { name: 'Gross Zimmern', date: '19.07.24', fixed: true,
+      netto: [28, 26, 26, 35], brutto: [22, 13, 13, 19] },
+    { name: 'Attighof', date: '23.08.24', fixed: true,
+      netto: [32, 32, 32, 32], brutto: [23, 17, 17, 19] },
+  ],
+  finalRounds: [
+    { name: 'Bad Griesbach I (Do) – Porsche', date: '05.09.24',
+      netto: [34, 30, 25, 24], brutto: [26, 16, 12, 11] },
+    { name: 'Bad Griesbach II (Fr) – Brunnwies', date: '06.09.24',
+      netto: [27, 31, 34, 34], brutto: [18, 17, 15, 19] },
+    { name: 'Bad Griesbach III (Sa) – Beckenbauer', date: '07.09.24',
+      netto: [27, 33, 38, 34], brutto: [17, 18, 19, 19] },
+    { name: 'Bad Griesbach IV (Sa) – Porsche', date: '07.09.24',
+      netto: [33, 31, 37, 32], brutto: [24, 16, 16, 17] },
+  ]
+};
+
+async function seedData() {
+  try {
+    log('Schreibe Saison 2024 nach seasons/2024/tournaments/mfw2024 ...');
+    await db.collection('seasons').doc('2024')
+            .collection('tournaments').doc('mfw2024')
+            .set(data2024);
+    log('✅ Erfolgreich gespeichert!');
+    log('');
+    log('Du kannst dieses Fenster jetzt schließen.');
+  } catch (err) {
+    log('❌ Fehler: ' + err.message);
+  }
+}
+</script>
+</body>
+</html>
