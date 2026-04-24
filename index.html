@@ -85,8 +85,11 @@
     justify-content: space-between;
     gap: 8px;
   }
-  .card-header .round-name { font-weight: 600; font-size: 15px; }
-  .card-header .round-date { font-size: 13px; opacity: 0.85; }
+  .card-header .round-name { font-weight: 600; font-size: 15px; flex-shrink: 0; }
+  .card-header .round-date { font-size: 13px; opacity: 0.85; margin-left: auto; flex-shrink: 0; }
+  .card-header .weather-badge { margin-left: 10px; margin-right: 0; }
+  /* Reihenfolge: Name | Wetter (Mitte) | Datum (rechts) */
+  .card-header { justify-content: flex-start; }
   .card-header input[type=text] {
     background: rgba(255,255,255,0.2);
     border: 1px solid rgba(255,255,255,0.4);
@@ -410,8 +413,11 @@
   /* Weather Badge in Runden-Header */
   .weather-badge {
     font-size: 11px; opacity: 0.9; background: rgba(255,255,255,0.2);
-    padding: 2px 7px; border-radius: 10px; white-space: nowrap;
-    margin-left: auto;
+    padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+    flex-shrink: 0;
+  }
+  @media (max-width: 700px) {
+    .weather-badge { font-size: 10px; padding: 2px 5px; }
   }
 
   /* Stats loading */
@@ -767,32 +773,35 @@
     <!-- Schlechtwetter-König -->
     <div class="section-title" style="margin-top:0;">🏆 Schlechtwetter-König</div>
     <div class="info-box">Wer spielt bei Regen am besten – relativ zum eigenen Schnitt?</div>
-    <div class="card"><div class="table-scroll">
+    <div class="card stats-desktop"><div class="table-scroll">
       <table id="tbl-rain-king">
         <thead><tr><th>Spieler</th><th>☀️ Ø Sonnig</th><th>🌧️ Ø Regen</th><th>Delta</th><th>Bewertung</th></tr></thead>
         <tbody id="tbody-rain-king"></tbody>
       </table>
     </div></div>
+    <div class="stats-mobile" id="rain-king-mobile"></div>
 
     <!-- Temperatur-Korrelation -->
     <div class="section-title" style="margin-top:24px;">🌡️ Temperatur-Einfluss</div>
     <div class="info-box">Ø Netto-Score nach Temperaturbereich.</div>
-    <div class="card"><div class="table-scroll">
+    <div class="card stats-desktop"><div class="table-scroll">
       <table id="tbl-temp">
-        <thead><tr><th>Spieler</th><th>🥶 Kalt &lt;10°C</th><th>😊 Mild 10–20°C</th><th>☀️ Warm &gt;20°C</th><th>Lieblingswetter</th></tr></thead>
+        <thead><tr><th>Spieler</th><th>🥶 &lt;10°C</th><th>😊 10–20°C</th><th>☀️ &gt;20°C</th><th>Lieblingswetter</th></tr></thead>
         <tbody id="tbody-temp"></tbody>
       </table>
     </div></div>
+    <div class="stats-mobile" id="temp-mobile"></div>
 
     <!-- Wind-Korrelation -->
     <div class="section-title" style="margin-top:24px;">💨 Wind-Einfluss</div>
     <div class="info-box">Ø Netto-Score bei Windstille vs. Wind.</div>
-    <div class="card"><div class="table-scroll">
+    <div class="card stats-desktop"><div class="table-scroll">
       <table id="tbl-wind">
-        <thead><tr><th>Spieler</th><th>🍃 Windstill &lt;15 km/h</th><th>💨 Windig 15–30 km/h</th><th>🌪️ Sturm &gt;30 km/h</th><th>Bewertung</th></tr></thead>
+        <thead><tr><th>Spieler</th><th>🍃 &lt;15 km/h</th><th>💨 15–30 km/h</th><th>🌪️ &gt;30 km/h</th><th>Bewertung</th></tr></thead>
         <tbody id="tbody-wind"></tbody>
       </table>
     </div></div>
+    <div class="stats-mobile" id="wind-mobile"></div>
 
     <!-- Scatter Plot -->
     <div class="section-title" style="margin-top:24px;">📈 Temperatur vs. Score</div>
@@ -870,7 +879,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '4.7';
+const APP_VERSION = '4.8';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1419,6 +1428,9 @@ function getPlayerWeatherAvg(weatherData, pi, filterFn) {
 function renderRainKing(weatherData) {
   const tbody = document.getElementById('tbody-rain-king');
   tbody.innerHTML = '';
+  const mob = document.getElementById('rain-king-mobile');
+  if (mob) mob.innerHTML = '';
+
   const results = PLAYERS.map((player, pi) => {
     const sunny = getPlayerWeatherAvg(weatherData, pi, w => w.rain < 1);
     const rainy = getPlayerWeatherAvg(weatherData, pi, w => w.rain >= 1);
@@ -1440,12 +1452,31 @@ function renderRainKing(weatherData) {
       <td style="font-weight:700;color:${deltaColor};">${deltaStr}</td>
       <td>${bewertung}</td>`;
     tbody.appendChild(tr);
+
+    if (mob) {
+      const card = document.createElement('div');
+      card.className = 'stat-card';
+      card.innerHTML = `
+        <div class="stat-card-header">
+          <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${PLAYER_COLORS[d.pi]};flex-shrink:0;"></span>
+          <span class="stat-card-name">${d.player}</span>
+          <span class="stat-card-badge" style="color:${deltaColor};background:${deltaColor}22;">${deltaStr} ${bewertung}</span>
+        </div>
+        <div class="stat-card-body">
+          <div class="stat-row"><span>☀️ Ø Sonnig</span><strong>${d.sunny ? d.sunny.avg.toFixed(1) + ` (${d.sunny.n}×)` : '–'}</strong></div>
+          <div class="stat-row"><span>🌧️ Ø Regen</span><strong>${d.rainy ? d.rainy.avg.toFixed(1) + ` (${d.rainy.n}×)` : '–'}</strong></div>
+        </div>`;
+      mob.appendChild(card);
+    }
   });
 }
 
 function renderTempCorrelation(weatherData) {
   const tbody = document.getElementById('tbody-temp');
   tbody.innerHTML = '';
+  const mob = document.getElementById('temp-mobile');
+  if (mob) mob.innerHTML = '';
+
   PLAYERS.forEach((player, pi) => {
     const cold = getPlayerWeatherAvg(weatherData, pi, w => w.temp < 10);
     const mild = getPlayerWeatherAvg(weatherData, pi, w => w.temp >= 10 && w.temp <= 20);
@@ -1465,12 +1496,32 @@ function renderTempCorrelation(weatherData) {
       <td>${warm ? warm.avg.toFixed(1) + ` <small>(${warm.n}×)</small>` : '–'}</td>
       <td><strong>${lieblings}</strong></td>`;
     tbody.appendChild(tr);
+
+    if (mob) {
+      const card = document.createElement('div');
+      card.className = 'stat-card';
+      card.innerHTML = `
+        <div class="stat-card-header">
+          <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${PLAYER_COLORS[pi]};flex-shrink:0;"></span>
+          <span class="stat-card-name">${player}</span>
+          <span class="stat-card-badge">${lieblings}</span>
+        </div>
+        <div class="stat-card-body">
+          <div class="stat-row"><span>🥶 Kalt &lt;10°C</span><strong>${cold ? cold.avg.toFixed(1) + ` (${cold.n}×)` : '–'}</strong></div>
+          <div class="stat-row"><span>😊 Mild 10–20°C</span><strong>${mild ? mild.avg.toFixed(1) + ` (${mild.n}×)` : '–'}</strong></div>
+          <div class="stat-row"><span>☀️ Warm &gt;20°C</span><strong>${warm ? warm.avg.toFixed(1) + ` (${warm.n}×)` : '–'}</strong></div>
+        </div>`;
+      mob.appendChild(card);
+    }
   });
 }
 
 function renderWindCorrelation(weatherData) {
   const tbody = document.getElementById('tbody-wind');
   tbody.innerHTML = '';
+  const mob = document.getElementById('wind-mobile');
+  if (mob) mob.innerHTML = '';
+
   PLAYERS.forEach((player, pi) => {
     const calm  = getPlayerWeatherAvg(weatherData, pi, w => w.wind < 15);
     const windy = getPlayerWeatherAvg(weatherData, pi, w => w.wind >= 15 && w.wind <= 30);
@@ -1485,6 +1536,23 @@ function renderWindCorrelation(weatherData) {
       <td>${storm ? storm.avg.toFixed(1) + ` <small>(${storm.n}×)</small>` : '–'}</td>
       <td><strong>${bewertung}</strong></td>`;
     tbody.appendChild(tr);
+
+    if (mob) {
+      const card = document.createElement('div');
+      card.className = 'stat-card';
+      card.innerHTML = `
+        <div class="stat-card-header">
+          <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${PLAYER_COLORS[pi]};flex-shrink:0;"></span>
+          <span class="stat-card-name">${player}</span>
+          <span class="stat-card-badge">${bewertung}</span>
+        </div>
+        <div class="stat-card-body">
+          <div class="stat-row"><span>🍃 Windstill &lt;15</span><strong>${calm  ? calm.avg.toFixed(1)  + ` (${calm.n}×)`  : '–'}</strong></div>
+          <div class="stat-row"><span>💨 Windig 15–30</span><strong>${windy ? windy.avg.toFixed(1) + ` (${windy.n}×)` : '–'}</strong></div>
+          <div class="stat-row"><span>🌪️ Sturm &gt;30</span><strong>${storm ? storm.avg.toFixed(1) + ` (${storm.n}×)` : '–'}</strong></div>
+        </div>`;
+      mob.appendChild(card);
+    }
   });
 }
 
@@ -1878,10 +1946,8 @@ function renderQualiRounds() {
         const coords = isoDate ? getVenueCoords(round.name) : null;
         const wKey = (isoDate && coords) ? `${isoDate}_${coords.lat}_${coords.lon}` : null;
         const w = wKey ? weatherCache[wKey] : null;
-        const weatherHtml = wKey
-          ? `${getWeatherBadge(w, wKey)}`
-          : '';
-        header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span><span class="round-date">${round.date}</span>${weatherHtml}${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}`;
+        const weatherHtml = wKey ? `${getWeatherBadge(w, wKey)}` : '';
+        header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span>${weatherHtml}<span class="round-date">${round.date}</span>${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}`;
       } else {
         const nameVal = round.name === 'tbd' ? '' : round.name;
         const dateVal = round.date === 'tt.mm.26' ? '' : round.date;
@@ -1963,10 +2029,8 @@ function renderFinalRounds() {
     const coords = isoDate ? getVenueCoords(round.name) : null;
     const wKey = (isoDate && coords) ? `${isoDate}_${coords.lat}_${coords.lon}` : null;
     const w = wKey ? weatherCache[wKey] : null;
-    const weatherHtml = wKey
-      ? `${getWeatherBadge(w, wKey)}`
-      : '';
-    header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span><span class="round-date">${round.date}</span>${weatherHtml}`;
+    const weatherHtml = wKey ? `${getWeatherBadge(w, wKey)}` : '';
+    header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span>${weatherHtml}<span class="round-date">${round.date}</span>`;
     card.appendChild(header);
 
     const tableWrap2 = document.createElement('div');
