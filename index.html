@@ -809,12 +809,13 @@
 
     <!-- Runden-Detail -->
     <div class="section-title" style="margin-top:24px;">📋 Alle Runden mit Wetterdaten</div>
-    <div class="card"><div class="table-scroll">
+    <div class="card stats-desktop"><div class="table-scroll">
       <table id="tbl-weather-rounds">
         <thead><tr><th>Datum</th><th>Platz</th><th>🌡️</th><th>🌧️</th><th>💨</th><th>Lutz</th><th>Markus</th><th>Henrick</th><th>Thorsten</th></tr></thead>
         <tbody id="tbody-weather-rounds"></tbody>
       </table>
     </div></div>
+    <div class="stats-mobile" id="weather-rounds-mobile"></div>
   </section>
 
 </div><!-- end weather-page -->
@@ -879,7 +880,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '4.8';
+const APP_VERSION = '4.9';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1277,20 +1278,39 @@ function renderMonthStats() {
 const weatherCache = {}; // key: "isoDate_lat_lon" → {temp, rain, wind}
 
 async function prefetchWeatherForCurrentSeason() {
-  if (!state.qualiRounds) return;
-  const rounds = [...state.qualiRounds, ...state.finalRounds];
-  for (const r of rounds) {
-    if (!r.netto.some(v => v > 0) || !r.date || /tbd|ausgefallen/i.test(r.name)) continue;
-    const isoDate = parseDate(r.date);
-    if (!isoDate) continue;
-    const coords = getVenueCoords(r.name);
-    if (!coords) continue;
-    const key = `${isoDate}_${coords.lat}_${coords.lon}`;
-    if (weatherCache[key]) continue;
+  // Erst alle Saisons laden falls noch nicht geschehen
+  const seasonIds = Object.keys(SEASONS);
+  await Promise.all(seasonIds.map(async id => {
+    if (!allSeasonsData[id]) {
+      try {
+        const doc = await getDocRef(id).get();
+        if (doc.exists) allSeasonsData[id] = doc.data();
+      } catch(e) {}
+    }
+  }));
+
+  // Alle Runden aller Saisons sammeln
+  const allRounds = [];
+  Object.entries(allSeasonsData).forEach(([sid, data]) => {
+    if (!data) return;
+    [...data.qualiRounds, ...data.finalRounds].forEach(r => {
+      if (!r.netto.some(v => v > 0) || !r.date || /tbd|ausgefallen/i.test(r.name)) return;
+      const isoDate = parseDate(r.date);
+      if (!isoDate) return;
+      const coords = getVenueCoords(r.name);
+      if (!coords) return;
+      const key = `${isoDate}_${coords.lat}_${coords.lon}`;
+      if (!weatherCache[key]) allRounds.push({ r, isoDate, coords, key, sid });
+    });
+  });
+
+  // Deduplizieren nach key
+  const unique = [...new Map(allRounds.map(x => [x.key, x])).values()];
+
+  for (const { r, isoDate, coords, key } of unique) {
     const w = await fetchWeatherForRound(isoDate, coords);
     if (w) {
       weatherCache[key] = w;
-      // Header der Runde aktualisieren
       updateRoundWeatherBadge(r, isoDate, coords, w);
     }
   }
@@ -1320,7 +1340,9 @@ const VENUE_COORDS = {
   'kronberg':      { lat: 50.1833, lon: 8.5167,  name: 'Kronberg' },
   'bachgrund':     { lat: 49.9500, lon: 9.1500,  name: 'Bachgrund' },
   'friedberg':     { lat: 50.3333, lon: 8.7500,  name: 'Friedberg' },
-  'rhein-main':    { lat: 50.0500, lon: 8.5700,  name: 'Rhein-Main' },
+  'rhein-main':    { lat: 50.0833, lon: 8.2500,  name: 'Wiesbaden/Rhein-Main' },
+  'rhein main':    { lat: 50.0833, lon: 8.2500,  name: 'Wiesbaden/Rhein-Main' },
+  'wiesbaden':     { lat: 50.0833, lon: 8.2500,  name: 'Wiesbaden/Rhein-Main' },
   'idstein':       { lat: 50.2167, lon: 8.2667,  name: 'Idstein' },
   'hofheim':       { lat: 50.0833, lon: 8.4500,  name: 'Hofheim' },
   'hof hausen':    { lat: 50.0833, lon: 8.4500,  name: 'Hofheim' },
@@ -1333,7 +1355,6 @@ const VENUE_COORDS = {
   'frankfurter':   { lat: 50.1167, lon: 8.6833,  name: 'Frankfurt' },
   'kiawah':        { lat: 49.8333, lon: 8.6167,  name: 'Riedstadt' },
   'vdes':          { lat: 49.8333, lon: 8.0833,  name: 'Rheinhessen' },
-  'wiesbaden':     { lat: 50.0833, lon: 8.2500,  name: 'Wiesbaden' },
 };
 
 function getVenueCoords(name) {
@@ -1375,14 +1396,16 @@ async function loadWeatherData() {
   weatherLoaded = true;
   document.getElementById('weather-loading').style.display = 'block';
 
-  // Alle Saisons laden falls noch nicht geschehen
-  if (Object.keys(allSeasonsData).length === 0) {
-    const seasonIds = Object.keys(SEASONS).sort((a,b) => b - a);
-    const results = await Promise.all(seasonIds.map(id => getDocRef(id).get().then(doc => ({ id, data: doc.exists ? doc.data() : null }))));
-    results.forEach(({ id, data }) => { if (data) allSeasonsData[id] = data; });
-  }
+  // Alle Saisons laden – inkl. 2026 Legacy-Pfad
+  const seasonIds = Object.keys(SEASONS).sort((a,b) => b - a);
+  await Promise.all(seasonIds.map(async id => {
+    if (!allSeasonsData[id]) {
+      const doc = await getDocRef(id).get();
+      if (doc.exists) allSeasonsData[id] = doc.data();
+    }
+  }));
 
-  // Alle Runden mit Datum + Koordinaten sammeln
+  // Alle Runden mit Datum + Koordinaten sammeln (alle Saisons)
   const rounds = [];
   Object.entries(allSeasonsData).forEach(([sid, data]) => {
     [...data.qualiRounds, ...data.finalRounds].forEach(r => {
@@ -1401,7 +1424,14 @@ async function loadWeatherData() {
   for (let i = 0; i < rounds.length; i += batchSize) {
     const batch = rounds.slice(i, i + batchSize);
     const results = await Promise.all(batch.map(r => fetchWeatherForRound(r.isoDate, r.coords)));
-    results.forEach((w, j) => { if (w) weatherData.push({ round: batch[j], weather: w }); });
+    results.forEach((w, j) => {
+      if (w) {
+        weatherData.push({ round: batch[j], weather: w });
+        // Cache befüllen für Turnier-Tab Badges
+        const key = `${batch[j].isoDate}_${batch[j].coords.lat}_${batch[j].coords.lon}`;
+        weatherCache[key] = w;
+      }
+    });
   }
 
   document.getElementById('weather-loading').style.display = 'none';
@@ -1417,6 +1447,10 @@ async function loadWeatherData() {
   renderWindCorrelation(weatherData);
   renderWeatherScatter(weatherData);
   renderWeatherRoundsTable(weatherData);
+
+  // Badges in aktuellem Turnier-Tab aktualisieren
+  weatherPrefetched = true;
+  recalcAndRender();
 }
 
 function getPlayerWeatherAvg(weatherData, pi, filterFn) {
@@ -1590,19 +1624,50 @@ function renderWeatherScatter(weatherData) {
 function renderWeatherRoundsTable(weatherData) {
   const tbody = document.getElementById('tbody-weather-rounds');
   tbody.innerHTML = '';
+  const mob = document.getElementById('weather-rounds-mobile');
+  if (mob) mob.innerHTML = '';
+
   const sorted = [...weatherData].sort((a,b) => b.round.isoDate.localeCompare(a.round.isoDate));
   sorted.forEach(d => {
     const w = d.weather;
     const rainIcon = w.rain < 1 ? '☀️' : w.rain < 5 ? '🌦️' : '🌧️';
+    const venueName = normalizeVenueName(d.round.name);
+
+    // Desktop Tabellenzeile
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="white-space:nowrap;">${d.round.date}</td>
-      <td style="font-size:12px;">${normalizeVenueName(d.round.name)}</td>
+      <td style="font-size:12px;">${venueName}</td>
       <td>${w.temp.toFixed(0)}°C</td>
       <td>${rainIcon} ${w.rain.toFixed(1)}</td>
       <td>${w.wind.toFixed(0)}</td>
       ${PLAYERS.map((_,pi) => `<td style="text-align:center;font-weight:${d.round.netto[pi]>0?'600':'400'};color:${d.round.netto[pi]>0?PLAYER_COLORS[pi]:'#ccc'};">${d.round.netto[pi]||'–'}</td>`).join('')}`;
     tbody.appendChild(tr);
+
+    // Mobile Karte
+    if (mob) {
+      const card = document.createElement('div');
+      card.className = 'stat-card';
+      card.style.marginBottom = '8px';
+      card.innerHTML = `
+        <div class="stat-card-header" style="background:#f5f5f5;border-bottom:1px solid #eee;">
+          <span style="font-weight:700;font-size:13px;flex:1;">${venueName}</span>
+          <span style="font-size:12px;color:#666;">${d.round.date}</span>
+        </div>
+        <div style="padding:8px 14px;background:#f9f9f9;display:flex;gap:12px;font-size:13px;border-bottom:1px solid #eee;">
+          <span>${rainIcon} ${w.rain.toFixed(1)}mm</span>
+          <span>🌡️ ${w.temp.toFixed(0)}°C</span>
+          <span>💨 ${w.wind.toFixed(0)} km/h</span>
+        </div>
+        <div style="padding:8px 14px;display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+          ${PLAYERS.map((_,pi) => d.round.netto[pi] > 0 ? `
+            <div style="font-size:13px;">
+              <span style="color:${PLAYER_COLORS[pi]};font-weight:600;">${PLAYERS[pi]}</span>
+              <span style="float:right;font-weight:700;">${d.round.netto[pi]}</span>
+            </div>` : '').join('')}
+        </div>`;
+      mob.appendChild(card);
+    }
   });
 }
 
