@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Seed 2022 Data</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<h2>Saison 2022 – Daten in Firestore schreiben</h2>
+<button onclick="seedData()" style="font-size:18px;padding:12px 24px;background:#CC0000;color:white;border:none;border-radius:8px;cursor:pointer;">
+  ▶ Jetzt Saison 2022 einspielen
+</button>
+<pre id="log" style="margin-top:20px;background:#f5f5f5;padding:16px;border-radius:8px;font-size:13px;"></pre>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAq4W1dbbwQKst0ZmZOkITJqYMpALukqHQ",
+  authDomain: "flexwork2026.firebaseapp.com",
+  projectId: "flexwork2026",
+  storageBucket: "flexwork2026.firebasestorage.app",
+  messagingSenderId: "618329184932",
+  appId: "1:618329184932:web:6da142379d38c89552a431"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+function log(msg) { document.getElementById('log').textContent += msg + '\n'; }
+
+// Hinweis: 2022 hatte keine Endrunde (alle Werte 0)
+const data2022 = {
+  qualiRounds: [
+    { name: 'Bad Griesbach - Uttlau', date: '12.09.21', fixed: true,
+      netto: [27, 30, 40, 30], brutto: [16, 11, 18, 13] },
+    { name: 'Kronberg', date: '15.10.21', fixed: true,
+      netto: [35, 30, 22, 22], brutto: [24, 12, 11, 11] },
+    { name: 'Bachgrund', date: '01.04.22', fixed: true,
+      netto: [27, 31, 27, 27], brutto: [17, 13, 12, 12] },
+    { name: 'Friedberg', date: '22.04.22', fixed: true,
+      netto: [29, 33, 29, 32], brutto: [10, 12, 10, 14] },
+    { name: 'Rhein-Main (Ami-Platz)', date: '20.05.22', fixed: true,
+      netto: [30, 36, 30, 30], brutto: [9, 17, 9, 13] },
+    { name: 'VDES, Rheinhessen', date: '11.06.22', fixed: true,
+      netto: [34, 29, 35, 36], brutto: [23, 10, 14, 17] },
+    { name: 'Erftal', date: '17.06.22', fixed: true,
+      netto: [39, 34, 38, 32], brutto: [26, 10, 17, 15] },
+    { name: 'Frankfurter Golfclub', date: '05.07.22', fixed: true,
+      netto: [28, 28, 28, 40], brutto: [17, 17, 17, 20] },
+  ],
+  finalRounds: [
+    { name: 'Bad Griesbach I (Do) – Porsche', date: '08.09.22',
+      netto: [0, 0, 0, 0], brutto: [0, 0, 0, 0] },
+    { name: 'Bad Griesbach II (Fr) – Uttlau', date: '09.09.22',
+      netto: [0, 0, 0, 0], brutto: [0, 0, 0, 0] },
+    { name: 'Bad Griesbach III (Sa) – Beckenbauer', date: '10.09.22',
+      netto: [0, 0, 0, 0], brutto: [0, 0, 0, 0] },
+    { name: 'Bad Griesbach IV (Sa) – Porsche', date: '10.09.22',
+      netto: [0, 0, 0, 0], brutto: [0, 0, 0, 0] },
+  ]
+};
+
+async function seedData() {
+  try {
+    log('Schreibe Saison 2022 nach seasons/2022/tournaments/mfw2022 ...');
+    await db.collection('seasons').doc('2022')
+            .collection('tournaments').doc('mfw2022')
+            .set(data2022);
+    log('✅ Erfolgreich gespeichert!');
+    log('Du kannst dieses Fenster jetzt schließen.');
+  } catch (err) {
+    log('❌ Fehler: ' + err.message);
+  }
+}
+</script>
+</body>
+</html>
