@@ -682,7 +682,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '3.5';
+const APP_VERSION = '3.6';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -787,11 +787,15 @@ const DEFAULT_FINAL_ROUNDS = [
 // ---- FIRESTORE PERSISTENCE ----
 function saveState() {
   isSaving = true;
+  // Sicherheits-Timeout: isSaving nach max. 5s zurücksetzen
+  const savingTimeout = setTimeout(() => { isSaving = false; }, 5000);
   getDocRef(currentSeason).set(state)
     .then(() => {
+      clearTimeout(savingTimeout);
       setTimeout(() => { isSaving = false; }, 1200);
     })
     .catch(err => {
+      clearTimeout(savingTimeout);
       console.error('Firestore save error:', err);
       isSaving = false;
     });
@@ -832,6 +836,8 @@ function startListener() {
     (err) => {
       console.error('Firestore onSnapshot error:', err);
       setStatus('loading');
+      // Fallback: Default-State rendern damit die App nicht leer bleibt
+      recalcAndRender();
     }
   );
 }
