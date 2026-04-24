@@ -643,8 +643,43 @@
     </div>
 
     <div class="section-title" style="margin-top:24px;">🏌️ Platzkönige</div>
-    <div class="info-box">Plätze die in mindestens 2 Saisons gespielt wurden. Bester Durchschnitt Netto pro Spieler.</div>
+    <div class="info-box">Alle gespielten Plätze, sortiert nach Häufigkeit. Bester Durchschnitt Netto pro Spieler.</div>
     <div id="venue-tables"></div>
+  </section>
+
+  <!-- Neue Statistiken -->
+  <section id="sec-trend">
+    <div class="section-title">📈 Trend-Analyse</div>
+    <div class="info-box">Entwicklung des Ø Netto-Scores pro Spieler über alle Saisons. <strong>↑</strong> = wird besser, <strong>↓</strong> = wird schlechter.</div>
+    <div class="card"><div class="table-scroll"><table id="tbl-trend">
+      <thead><tr><th>Spieler</th><th>Trend</th><th>Ø Netto/Runde</th><th>Beste Saison</th><th>Schlechteste Saison</th></tr></thead>
+      <tbody id="tbody-trend"></tbody>
+    </table></div></div>
+    <div class="chart-card"><canvas id="trendChart" height="200"></canvas></div>
+  </section>
+
+  <section id="sec-quali-vs-final">
+    <div class="section-title">🏌️ Quali vs. Endrunde</div>
+    <div class="info-box">Wer steigert sich unter Druck? Vergleich Ø Netto pro Runde in Quali vs. Endrunde über alle Saisons.</div>
+    <div class="card"><div class="table-scroll"><table id="tbl-qvf">
+      <thead><tr><th>Spieler</th><th>Ø Quali</th><th>Ø Endrunde</th><th>Delta</th><th>Bewertung</th></tr></thead>
+      <tbody id="tbody-qvf"></tbody>
+    </table></div></div>
+  </section>
+
+  <section id="sec-consistency">
+    <div class="section-title">🎯 Konsistenz-Index</div>
+    <div class="info-box">Standardabweichung der Netto-Scores. Niedriger Wert = konstant, hoher Wert = schwankend.</div>
+    <div class="card"><div class="table-scroll"><table id="tbl-consistency">
+      <thead><tr><th>Spieler</th><th>Konsistenz-Index</th><th>Min</th><th>Max</th><th>Spanne</th><th>Bewertung</th></tr></thead>
+      <tbody id="tbody-consistency"></tbody>
+    </table></div></div>
+  </section>
+
+  <section id="sec-months">
+    <div class="section-title">🗓️ Monats-Statistik</div>
+    <div class="info-box">Ø Netto-Score pro Monat über alle Saisons. Wer ist Frühlings- oder Herbstspieler?</div>
+    <div class="chart-card"><canvas id="monthChart" height="220"></canvas></div>
   </section>
 
 </div><!-- end stats-page -->
@@ -709,7 +744,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '4.2';
+const APP_VERSION = '4.3';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -843,7 +878,208 @@ let state = {
   finalRounds: DEFAULT_FINAL_ROUNDS.map(r => ({...r, netto:[...r.netto], brutto:[...r.brutto]})),
 };
 
-// ---- REAL-TIME LISTENER ----
+// ---- TREND-ANALYSE ----
+let trendChartInstance = null;
+function renderTrendAnalysis() {
+  const seasonIds = Object.keys(allSeasonsData).sort((a,b) => a - b);
+  const tbody = document.getElementById('tbody-trend');
+  tbody.innerHTML = '';
+
+  // Ø Netto pro Runde pro Spieler pro Saison
+  const seasonAvgs = seasonIds.map(sid => {
+    const data = allSeasonsData[sid];
+    return PLAYERS.map((_, pi) => {
+      const allVals = [
+        ...data.qualiRounds.map(r => r.netto[pi]).filter(v => v > 0),
+        ...data.finalRounds.map(r => r.netto[pi]).filter(v => v > 0)
+      ];
+      return allVals.length > 0 ? allVals.reduce((s,v) => s+v,0) / allVals.length : null;
+    });
+  });
+
+  PLAYERS.forEach((player, pi) => {
+    const vals = seasonIds.map((sid, i) => ({ sid, v: seasonAvgs[i][pi] })).filter(x => x.v !== null);
+    if (vals.length < 2) return;
+
+    // Lineare Regression
+    const n = vals.length;
+    const xMean = (n - 1) / 2;
+    const yMean = vals.reduce((s,x) => s + x.v, 0) / n;
+    const slope = vals.reduce((s,x,i) => s + (i - xMean) * (x.v - yMean), 0) /
+                  vals.reduce((s,_,i) => s + Math.pow(i - xMean, 2), 0);
+
+    const trendPct = ((slope / yMean) * 100).toFixed(1);
+    const trendIcon = slope > 0.2 ? '↑' : slope < -0.2 ? '↓' : '→';
+    const trendColor = slope > 0.2 ? '#2E7D32' : slope < -0.2 ? '#CC0000' : '#666';
+    const avgAll = (vals.reduce((s,x) => s+x.v, 0) / vals.length).toFixed(1);
+    const bestSeason = vals.reduce((a,b) => a.v > b.v ? a : b);
+    const worstSeason = vals.reduce((a,b) => a.v < b.v ? a : b);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${PLAYER_COLORS[pi]};margin-right:6px;"></span><strong>${player}</strong></td>
+      <td style="font-size:20px;color:${trendColor};font-weight:700;">${trendIcon} <span style="font-size:13px;">${trendPct > 0 ? '+' : ''}${trendPct}%/Saison</span></td>
+      <td><strong>${avgAll}</strong></td>
+      <td style="color:#2E7D32;">${bestSeason.sid} (${bestSeason.v.toFixed(1)})</td>
+      <td style="color:#CC0000;">${worstSeason.sid} (${worstSeason.v.toFixed(1)})</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Chart
+  const ctx = document.getElementById('trendChart');
+  if (!ctx) return;
+  if (trendChartInstance) trendChartInstance.destroy();
+  trendChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: seasonIds,
+      datasets: PLAYERS.map((player, pi) => ({
+        label: player,
+        data: seasonIds.map((_, i) => seasonAvgs[i][pi] ? +seasonAvgs[i][pi].toFixed(1) : null),
+        borderColor: PLAYER_COLORS[pi],
+        backgroundColor: PLAYER_COLORS[pi] + '22',
+        borderWidth: 2.5, pointRadius: 5, tension: 0.3, spanGaps: true,
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'top', labels: { font: { family: 'Inter', size: 13 }, usePointStyle: true } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y} Ø Netto/Runde` } }
+      },
+      scales: {
+        y: { title: { display: true, text: 'Ø Netto pro Runde' }, grid: { color: '#f0f0f0' } },
+        x: { grid: { color: '#f0f0f0' } }
+      }
+    }
+  });
+}
+
+// ---- QUALI VS. ENDRUNDE ----
+function renderQualiVsFinal() {
+  const tbody = document.getElementById('tbody-qvf');
+  tbody.innerHTML = '';
+
+  const results = PLAYERS.map((player, pi) => {
+    const qualiVals = [], finalVals = [];
+    Object.values(allSeasonsData).forEach(data => {
+      data.qualiRounds.forEach(r => { if (r.netto[pi] > 0) qualiVals.push(r.netto[pi]); });
+      data.finalRounds.forEach(r => { if (r.netto[pi] > 0) finalVals.push(r.netto[pi]); });
+    });
+    const avgQ = qualiVals.length > 0 ? qualiVals.reduce((s,v) => s+v,0) / qualiVals.length : 0;
+    const avgF = finalVals.length > 0 ? finalVals.reduce((s,v) => s+v,0) / finalVals.length : 0;
+    return { player, pi, avgQ, avgF, delta: avgF - avgQ };
+  });
+
+  results.sort((a,b) => b.delta - a.delta);
+  results.forEach(d => {
+    const deltaStr = (d.delta >= 0 ? '+' : '') + d.delta.toFixed(1);
+    const deltaColor = d.delta > 0.5 ? '#2E7D32' : d.delta < -0.5 ? '#CC0000' : '#666';
+    const bewertung = d.delta > 1 ? '🔥 Druckspieler' : d.delta > 0 ? '✅ Stabil' : d.delta > -1 ? '😐 Leicht schwächer' : '😬 Bricht ein';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${PLAYER_COLORS[d.pi]};margin-right:6px;"></span><strong>${d.player}</strong></td>
+      <td>${d.avgQ.toFixed(1)}</td>
+      <td>${d.avgF.toFixed(1)}</td>
+      <td style="font-weight:700;color:${deltaColor};">${deltaStr}</td>
+      <td>${bewertung}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ---- KONSISTENZ-INDEX ----
+function renderConsistency() {
+  const tbody = document.getElementById('tbody-consistency');
+  tbody.innerHTML = '';
+
+  const results = PLAYERS.map((player, pi) => {
+    const allVals = [];
+    Object.values(allSeasonsData).forEach(data => {
+      [...data.qualiRounds, ...data.finalRounds].forEach(r => {
+        if (r.netto[pi] > 0) allVals.push(r.netto[pi]);
+      });
+    });
+    if (allVals.length < 2) return { player, pi, stddev: 0, min: 0, max: 0, span: 0 };
+    const mean = allVals.reduce((s,v) => s+v,0) / allVals.length;
+    const stddev = Math.sqrt(allVals.reduce((s,v) => s + Math.pow(v - mean, 2), 0) / allVals.length);
+    const min = Math.min(...allVals);
+    const max = Math.max(...allVals);
+    return { player, pi, stddev, min, max, span: max - min };
+  });
+
+  results.sort((a,b) => a.stddev - b.stddev);
+  results.forEach((d, rank) => {
+    const bewertung = d.stddev < 4 ? '🎯 Sehr konstant' : d.stddev < 6 ? '✅ Konstant' : d.stddev < 8 ? '📊 Durchschnitt' : '🎲 Schwankend';
+    const barWidth = Math.min(100, (d.stddev / 12) * 100).toFixed(0);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${PLAYER_COLORS[d.pi]};margin-right:6px;"></span><strong>${d.player}</strong></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;background:#f0f0f0;border-radius:4px;height:8px;">
+            <div style="width:${barWidth}%;background:${PLAYER_COLORS[d.pi]};border-radius:4px;height:8px;"></div>
+          </div>
+          <strong>${d.stddev.toFixed(1)}</strong>
+        </div>
+      </td>
+      <td style="color:#2E7D32;">${d.min}</td>
+      <td style="color:#CC0000;">${d.max}</td>
+      <td>${d.span}</td>
+      <td>${bewertung}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ---- MONATS-STATISTIK ----
+let monthChartInstance = null;
+function renderMonthStats() {
+  const MONTHS = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  // monthData[pi][month] = [scores]
+  const monthData = PLAYERS.map(() => Array.from({length:12}, () => []));
+
+  Object.values(allSeasonsData).forEach(data => {
+    [...data.qualiRounds, ...data.finalRounds].forEach(r => {
+      if (!r.netto.some(v => v > 0) || !r.date) return;
+      // Datum parsen: dd.mm.yy oder dd.mm.yyyy
+      const parts = r.date.split('.');
+      if (parts.length < 2) return;
+      const month = parseInt(parts[1]) - 1;
+      if (month < 0 || month > 11) return;
+      PLAYERS.forEach((_, pi) => {
+        if (r.netto[pi] > 0) monthData[pi][month].push(r.netto[pi]);
+      });
+    });
+  });
+
+  // Ø pro Monat pro Spieler
+  const datasets = PLAYERS.map((player, pi) => ({
+    label: player,
+    data: monthData[pi].map(vals => vals.length > 0 ? +(vals.reduce((s,v) => s+v,0) / vals.length).toFixed(1) : null),
+    borderColor: PLAYER_COLORS[pi],
+    backgroundColor: PLAYER_COLORS[pi] + '33',
+    borderWidth: 2.5, pointRadius: 5, tension: 0.3, spanGaps: true,
+  }));
+
+  const ctx = document.getElementById('monthChart');
+  if (!ctx) return;
+  if (monthChartInstance) monthChartInstance.destroy();
+  monthChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: { labels: MONTHS, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'top', labels: { font: { family: 'Inter', size: 13 }, usePointStyle: true } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y} Ø Netto` } }
+      },
+      scales: {
+        y: { title: { display: true, text: 'Ø Netto-Score' }, grid: { color: '#f0f0f0' } },
+        x: { grid: { color: '#f0f0f0' } }
+      }
+    }
+  });
+}
+
+
 let activeListener = null;
 
 function startListener() {
@@ -1389,14 +1625,48 @@ async function loadAllStats() {
         <div class="info-box">Wie oft hat jeder Spieler in einer Einzelrunde den höchsten Netto-Score aller Spieler erzielt (alle Saisons, alle Runden).</div>
         <div class="card"><div class="table-scroll"><table class="h2h-table" id="tbl-h2h"></table></div></div>
         <div class="section-title" style="margin-top:24px;">🏌️ Platzkönige</div>
-        <div class="info-box">Plätze die in mindestens 2 Saisons gespielt wurden. Bester Durchschnitt Netto pro Spieler.</div>
+        <div class="info-box">Alle gespielten Plätze, sortiert nach Häufigkeit. Bester Durchschnitt Netto pro Spieler.</div>
         <div id="venue-tables"></div>
+      </section>
+      <section id="sec-trend">
+        <div class="section-title">📈 Trend-Analyse</div>
+        <div class="info-box">Entwicklung des Ø Netto-Scores pro Spieler über alle Saisons. <strong>↑</strong> = wird besser, <strong>↓</strong> = wird schlechter.</div>
+        <div class="card"><div class="table-scroll"><table id="tbl-trend">
+          <thead><tr><th>Spieler</th><th>Trend</th><th>Ø Netto/Runde</th><th>Beste Saison</th><th>Schlechteste Saison</th></tr></thead>
+          <tbody id="tbody-trend"></tbody>
+        </table></div></div>
+        <div class="chart-card"><canvas id="trendChart" height="200"></canvas></div>
+      </section>
+      <section id="sec-quali-vs-final">
+        <div class="section-title">🏌️ Quali vs. Endrunde</div>
+        <div class="info-box">Wer steigert sich unter Druck? Vergleich Ø Netto pro Runde in Quali vs. Endrunde über alle Saisons.</div>
+        <div class="card"><div class="table-scroll"><table id="tbl-qvf">
+          <thead><tr><th>Spieler</th><th>Ø Quali</th><th>Ø Endrunde</th><th>Delta</th><th>Bewertung</th></tr></thead>
+          <tbody id="tbody-qvf"></tbody>
+        </table></div></div>
+      </section>
+      <section id="sec-consistency">
+        <div class="section-title">🎯 Konsistenz-Index</div>
+        <div class="info-box">Standardabweichung der Netto-Scores. Niedriger Wert = konstant, hoher Wert = schwankend.</div>
+        <div class="card"><div class="table-scroll"><table id="tbl-consistency">
+          <thead><tr><th>Spieler</th><th>Konsistenz-Index</th><th>Min</th><th>Max</th><th>Spanne</th><th>Bewertung</th></tr></thead>
+          <tbody id="tbody-consistency"></tbody>
+        </table></div></div>
+      </section>
+      <section id="sec-months">
+        <div class="section-title">🗓️ Monats-Statistik</div>
+        <div class="info-box">Ø Netto-Score pro Monat über alle Saisons. Wer ist Frühlings- oder Herbstspieler?</div>
+        <div class="chart-card"><canvas id="monthChart" height="220"></canvas></div>
       </section>`;
 
     renderHallOfFame();
     renderPlayerProfiles();
     renderH2H();
     renderVenueKings();
+    renderTrendAnalysis();
+    renderQualiVsFinal();
+    renderConsistency();
+    renderMonthStats();
     statsLoaded = true;
 
   } catch(err) {
