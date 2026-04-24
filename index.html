@@ -709,7 +709,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '4.0';
+const APP_VERSION = '4.1';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1631,13 +1631,23 @@ function renderH2H() {
 
 // ---- PLATZKÖNIGE ----
 function normalizeVenueName(name) {
-  // Bad Griesbach Varianten zusammenfassen
   const n = name.trim();
-  // Entferne Rundennummer und Wochentag: "Bad Griesbach I (Do) – Porsche" → "Bad Griesbach – Porsche"
+  
+  // Bad Griesbach Varianten zusammenfassen
   const bgMatch = n.match(/Bad Griesbach\s*(?:[IVX]+\s*\([^)]+\)\s*[–-]\s*)?[–-]?\s*(Porsche|Uttlau|Brunnwies|Beckenbauer|Sagmühle)/i);
   if (bgMatch) return 'Bad Griesbach – ' + bgMatch[1];
-  // Andere Plätze: nur Klammern und Nummern entfernen
-  return n.replace(/\s*[IVX]+\s*\([^)]+\)\s*[–-]\s*/g, '').trim();
+  
+  // Rhein-Main Varianten
+  if (/rhein[-\s]*main/i.test(n)) return 'Rhein-Main';
+  
+  // Wiesbaden Rhein - Main
+  if (/wiesbaden.*rhein/i.test(n)) return 'Rhein-Main';
+  
+  // Idstein (verschiedene Schreibweisen)
+  if (/idstein/i.test(n)) return 'Idstein';
+  
+  // Andere Plätze: Klammern und Zusätze entfernen
+  return n.replace(/\s*\([^)]+\)/g, '').replace(/\s*[–-]\s*[IVX]+.*$/i, '').trim();
 }
 
 function renderVenueKings() {
@@ -1645,14 +1655,16 @@ function renderVenueKings() {
 
   Object.entries(allSeasonsData).forEach(([sid, data]) => {
     [...data.qualiRounds, ...data.finalRounds].forEach(r => {
-      if (!r.netto.some(v => v > 0)) return;
+      // Überspringe leere und tbd-Runden
+      if (!r.netto.some(v => v > 0) || /tbd|ausgefallen/i.test(r.name)) return;
+      
       const normalized = normalizeVenueName(r.name);
       const key = normalized.toLowerCase();
       if (!venueMap[key]) venueMap[key] = { displayName: normalized, rounds: [] };
+      
       // Runden der gleichen Saison auf dem gleichen Platz zusammenfassen (Durchschnitt)
       const existing = venueMap[key].rounds.find(x => x.season === sid);
       if (existing) {
-        // Werte addieren für späteren Durchschnitt
         existing.netto = existing.netto.map((v, i) => v + r.netto[i]);
         existing.count++;
       } else {
@@ -1670,14 +1682,15 @@ function renderVenueKings() {
     });
   });
 
-  const venues = Object.values(venueMap).filter(v => v.rounds.length >= 2);
+  // ALLE Plätze anzeigen (auch 1×), sortiert nach Häufigkeit
+  const venues = Object.values(venueMap);
   venues.sort((a,b) => b.rounds.length - a.rounds.length);
 
   const container = document.getElementById('venue-tables');
   container.innerHTML = '';
 
   if (venues.length === 0) {
-    container.innerHTML = '<div class="info-box">Noch nicht genug Daten für Platzkönige.</div>';
+    container.innerHTML = '<div class="info-box">Noch keine Platzdaten vorhanden.</div>';
     return;
   }
 
