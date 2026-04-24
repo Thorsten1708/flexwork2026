@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>DB Test</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<h2>Firestore Verbindungstest</h2>
+<pre id="log" style="background:#f5f5f5;padding:16px;border-radius:8px;font-size:13px;line-height:1.6;"></pre>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAq4W1dbbwQKst0ZmZOkITJqYMpALukqHQ",
+  authDomain: "flexwork2026.firebaseapp.com",
+  projectId: "flexwork2026",
+  storageBucket: "flexwork2026.firebasestorage.app",
+  messagingSenderId: "618329184932",
+  appId: "1:618329184932:web:6da142379d38c89552a431"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function log(msg) {
+  document.getElementById('log').textContent += msg + '\n';
+}
+
+log('🔄 Teste Verbindung...');
+
+// Test 1: Legacy Pfad 2026
+db.collection('tournaments').doc('mfw2026').get()
+  .then(doc => {
+    if (doc.exists) {
+      const d = doc.data();
+      log('✅ 2026 (Legacy): ' + d.qualiRounds.length + ' Qualirunden, ' + d.finalRounds.length + ' Endrunden');
+      log('   Erste Runde: ' + d.qualiRounds[0].name + ' – Netto: ' + d.qualiRounds[0].netto);
+    } else {
+      log('❌ 2026 (Legacy): Dokument nicht gefunden!');
+    }
+  }).catch(e => log('❌ 2026 Fehler: ' + e.message));
+
+// Test 2: Neue Saisons
+['2025','2024','2023','2022'].forEach(year => {
+  db.collection('seasons').doc(year).collection('tournaments').doc('mfw'+year).get()
+    .then(doc => {
+      if (doc.exists) {
+        const d = doc.data();
+        log('✅ ' + year + ': ' + d.qualiRounds.length + ' Qualirunden, ' + d.finalRounds.length + ' Endrunden');
+      } else {
+        log('❌ ' + year + ': Dokument nicht gefunden – Seed-Script nötig!');
+      }
+    }).catch(e => log('❌ ' + year + ' Fehler: ' + e.message));
+});
+</script>
+</body>
+</html>
