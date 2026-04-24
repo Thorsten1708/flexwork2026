@@ -538,6 +538,7 @@
 <nav class="tab-nav">
   <button class="tab-btn active" onclick="switchTab('tournament')" id="tab-tournament">⛳ Turnier</button>
   <button class="tab-btn" onclick="switchTab('stats')" id="tab-stats">📊 Statistik</button>
+  <button class="tab-btn" onclick="switchTab('weather')" id="tab-weather">🌤️ Wetter</button>
 </nav>
 
 <main>
@@ -748,6 +749,60 @@
 
 </div><!-- end stats-page -->
 
+<!-- ==================== WETTER-SEITE ==================== -->
+<div class="stats-page" id="page-weather">
+
+  <section id="sec-weather-overview">
+    <div class="section-title">🌤️ Wetter-Korrelation</div>
+    <div class="info-box">Historische Wetterdaten (Open-Meteo API) für jeden Spieltag. Wie beeinflusst das Wetter eure Scores?</div>
+    <div id="weather-loading" class="stats-loading" style="display:none;">⏳ Lade Wetterdaten…</div>
+
+    <!-- Schlechtwetter-König -->
+    <div class="section-title" style="margin-top:0;">🏆 Schlechtwetter-König</div>
+    <div class="info-box">Wer spielt bei Regen am besten – relativ zum eigenen Schnitt?</div>
+    <div class="card"><div class="table-scroll">
+      <table id="tbl-rain-king">
+        <thead><tr><th>Spieler</th><th>☀️ Ø Sonnig</th><th>🌧️ Ø Regen</th><th>Delta</th><th>Bewertung</th></tr></thead>
+        <tbody id="tbody-rain-king"></tbody>
+      </table>
+    </div></div>
+
+    <!-- Temperatur-Korrelation -->
+    <div class="section-title" style="margin-top:24px;">🌡️ Temperatur-Einfluss</div>
+    <div class="info-box">Ø Netto-Score nach Temperaturbereich.</div>
+    <div class="card"><div class="table-scroll">
+      <table id="tbl-temp">
+        <thead><tr><th>Spieler</th><th>🥶 Kalt &lt;10°C</th><th>😊 Mild 10–20°C</th><th>☀️ Warm &gt;20°C</th><th>Lieblingswetter</th></tr></thead>
+        <tbody id="tbody-temp"></tbody>
+      </table>
+    </div></div>
+
+    <!-- Wind-Korrelation -->
+    <div class="section-title" style="margin-top:24px;">💨 Wind-Einfluss</div>
+    <div class="info-box">Ø Netto-Score bei Windstille vs. Wind.</div>
+    <div class="card"><div class="table-scroll">
+      <table id="tbl-wind">
+        <thead><tr><th>Spieler</th><th>🍃 Windstill &lt;15 km/h</th><th>💨 Windig 15–30 km/h</th><th>🌪️ Sturm &gt;30 km/h</th><th>Bewertung</th></tr></thead>
+        <tbody id="tbody-wind"></tbody>
+      </table>
+    </div></div>
+
+    <!-- Scatter Plot -->
+    <div class="section-title" style="margin-top:24px;">📈 Temperatur vs. Score</div>
+    <div class="chart-card"><canvas id="weatherScatterChart" height="250"></canvas></div>
+
+    <!-- Runden-Detail -->
+    <div class="section-title" style="margin-top:24px;">📋 Alle Runden mit Wetterdaten</div>
+    <div class="card"><div class="table-scroll">
+      <table id="tbl-weather-rounds">
+        <thead><tr><th>Datum</th><th>Platz</th><th>🌡️</th><th>🌧️</th><th>💨</th><th>Lutz</th><th>Markus</th><th>Henrick</th><th>Thorsten</th></tr></thead>
+        <tbody id="tbody-weather-rounds"></tbody>
+      </table>
+    </div></div>
+  </section>
+
+</div><!-- end weather-page -->
+
 </main>
 
 <script>
@@ -808,7 +863,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '4.4';
+const APP_VERSION = '4.5';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1202,7 +1257,242 @@ function renderMonthStats() {
 }
 
 
-// ---- TRAININGSTIPPS ----
+// ---- WETTER-ENGINE ----
+let weatherLoaded = false;
+
+// Koordinaten der bekannten Plätze
+const VENUE_COORDS = {
+  'bad griesbach': { lat: 48.4500, lon: 13.1833, name: 'Bad Griesbach' },
+  'kronberg':      { lat: 50.1833, lon: 8.5167,  name: 'Kronberg' },
+  'bachgrund':     { lat: 49.9500, lon: 9.1500,  name: 'Bachgrund' },
+  'friedberg':     { lat: 50.3333, lon: 8.7500,  name: 'Friedberg' },
+  'rhein-main':    { lat: 50.0500, lon: 8.5700,  name: 'Rhein-Main' },
+  'idstein':       { lat: 50.2167, lon: 8.2667,  name: 'Idstein' },
+  'hofheim':       { lat: 50.0833, lon: 8.4500,  name: 'Hofheim' },
+  'hof hausen':    { lat: 50.0833, lon: 8.4500,  name: 'Hofheim' },
+  'aschaffenburg': { lat: 49.9833, lon: 9.1500,  name: 'Aschaffenburg' },
+  'geiselwind':    { lat: 49.7667, lon: 10.4167, name: 'Geiselwind' },
+  'gross zimmern': { lat: 49.8667, lon: 8.8333,  name: 'Groß-Zimmern' },
+  'attighof':      { lat: 49.3500, lon: 8.9167,  name: 'Attighof' },
+  'rosenhof':      { lat: 49.5000, lon: 8.4000,  name: 'Rosenhof' },
+  'erftal':        { lat: 49.7500, lon: 9.4167,  name: 'Erftal' },
+  'frankfurter':   { lat: 50.1167, lon: 8.6833,  name: 'Frankfurt' },
+  'kiawah':        { lat: 49.8333, lon: 8.6167,  name: 'Riedstadt' },
+  'vdes':          { lat: 49.8333, lon: 8.0833,  name: 'Rheinhessen' },
+  'wiesbaden':     { lat: 50.0833, lon: 8.2500,  name: 'Wiesbaden' },
+};
+
+function getVenueCoords(name) {
+  const n = name.toLowerCase();
+  for (const [key, coords] of Object.entries(VENUE_COORDS)) {
+    if (n.includes(key)) return coords;
+  }
+  return null;
+}
+
+function parseDate(dateStr) {
+  // dd.mm.yy oder dd.mm.yyyy
+  const parts = dateStr.split('.');
+  if (parts.length < 3) return null;
+  const day = parts[0].padStart(2,'0');
+  const month = parts[1].padStart(2,'0');
+  let year = parts[2];
+  if (year.length === 2) year = '20' + year;
+  return `${year}-${month}-${day}`;
+}
+
+async function fetchWeatherForRound(date, coords) {
+  const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${coords.lat}&longitude=${coords.lon}&start_date=${date}&end_date=${date}&daily=temperature_2m_max,precipitation_sum,windspeed_10m_max&timezone=Europe%2FBerlin`;
+  try {
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if (data.daily && data.daily.temperature_2m_max) {
+      return {
+        temp: data.daily.temperature_2m_max[0],
+        rain: data.daily.precipitation_sum[0],
+        wind: data.daily.windspeed_10m_max[0],
+      };
+    }
+  } catch(e) { console.warn('Wetter-API Fehler:', e); }
+  return null;
+}
+
+async function loadWeatherData() {
+  weatherLoaded = true;
+  document.getElementById('weather-loading').style.display = 'block';
+
+  // Alle Saisons laden falls noch nicht geschehen
+  if (Object.keys(allSeasonsData).length === 0) {
+    const seasonIds = Object.keys(SEASONS).sort((a,b) => b - a);
+    const results = await Promise.all(seasonIds.map(id => getDocRef(id).get().then(doc => ({ id, data: doc.exists ? doc.data() : null }))));
+    results.forEach(({ id, data }) => { if (data) allSeasonsData[id] = data; });
+  }
+
+  // Alle Runden mit Datum + Koordinaten sammeln
+  const rounds = [];
+  Object.entries(allSeasonsData).forEach(([sid, data]) => {
+    [...data.qualiRounds, ...data.finalRounds].forEach(r => {
+      if (!r.netto.some(v => v > 0) || !r.date || /tbd|ausgefallen/i.test(r.name)) return;
+      const isoDate = parseDate(r.date);
+      if (!isoDate) return;
+      const coords = getVenueCoords(r.name);
+      if (!coords) return;
+      rounds.push({ ...r, season: sid, isoDate, coords });
+    });
+  });
+
+  // Wetterdaten parallel laden (max 20 gleichzeitig)
+  const weatherData = [];
+  const batchSize = 20;
+  for (let i = 0; i < rounds.length; i += batchSize) {
+    const batch = rounds.slice(i, i + batchSize);
+    const results = await Promise.all(batch.map(r => fetchWeatherForRound(r.isoDate, r.coords)));
+    results.forEach((w, j) => { if (w) weatherData.push({ round: batch[j], weather: w }); });
+  }
+
+  document.getElementById('weather-loading').style.display = 'none';
+
+  if (weatherData.length === 0) {
+    document.getElementById('weather-loading').style.display = 'block';
+    document.getElementById('weather-loading').textContent = '⚠️ Keine Wetterdaten verfügbar.';
+    return;
+  }
+
+  renderRainKing(weatherData);
+  renderTempCorrelation(weatherData);
+  renderWindCorrelation(weatherData);
+  renderWeatherScatter(weatherData);
+  renderWeatherRoundsTable(weatherData);
+}
+
+function getPlayerWeatherAvg(weatherData, pi, filterFn) {
+  const vals = weatherData.filter(d => filterFn(d.weather) && d.round.netto[pi] > 0)
+    .map(d => d.round.netto[pi]);
+  return vals.length > 0 ? { avg: vals.reduce((s,v) => s+v,0) / vals.length, n: vals.length } : null;
+}
+
+function renderRainKing(weatherData) {
+  const tbody = document.getElementById('tbody-rain-king');
+  tbody.innerHTML = '';
+  const results = PLAYERS.map((player, pi) => {
+    const sunny = getPlayerWeatherAvg(weatherData, pi, w => w.rain < 1);
+    const rainy = getPlayerWeatherAvg(weatherData, pi, w => w.rain >= 1);
+    const delta = (sunny && rainy) ? rainy.avg - sunny.avg : null;
+    return { player, pi, sunny, rainy, delta };
+  }).sort((a,b) => (b.delta||0) - (a.delta||0));
+
+  results.forEach((d, rank) => {
+    const deltaStr = d.delta !== null ? (d.delta >= 0 ? '+' : '') + d.delta.toFixed(1) : '–';
+    const deltaColor = d.delta > 0 ? '#2E7D32' : d.delta < 0 ? '#CC0000' : '#666';
+    const bewertung = rank === 0 && d.delta > 0 ? '👑 Schlechtwetter-König' :
+                      d.delta > 0 ? '✅ Mag Regen' :
+                      d.delta < -1 ? '☀️ Sonnenspieler' : '😐 Neutral';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${PLAYER_COLORS[d.pi]};margin-right:6px;"></span><strong>${d.player}</strong></td>
+      <td>${d.sunny ? d.sunny.avg.toFixed(1) + ` <small>(${d.sunny.n}×)</small>` : '–'}</td>
+      <td>${d.rainy ? d.rainy.avg.toFixed(1) + ` <small>(${d.rainy.n}×)</small>` : '–'}</td>
+      <td style="font-weight:700;color:${deltaColor};">${deltaStr}</td>
+      <td>${bewertung}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderTempCorrelation(weatherData) {
+  const tbody = document.getElementById('tbody-temp');
+  tbody.innerHTML = '';
+  PLAYERS.forEach((player, pi) => {
+    const cold = getPlayerWeatherAvg(weatherData, pi, w => w.temp < 10);
+    const mild = getPlayerWeatherAvg(weatherData, pi, w => w.temp >= 10 && w.temp <= 20);
+    const warm = getPlayerWeatherAvg(weatherData, pi, w => w.temp > 20);
+    const avgs = [
+      { label: '🥶', val: cold, key: 'cold' },
+      { label: '😊', val: mild, key: 'mild' },
+      { label: '☀️', val: warm, key: 'warm' },
+    ].filter(x => x.val);
+    const best = avgs.length > 0 ? avgs.reduce((a,b) => a.val.avg > b.val.avg ? a : b) : null;
+    const lieblings = best ? (best.key === 'cold' ? '🥶 Kälte' : best.key === 'mild' ? '😊 Mild' : '☀️ Wärme') : '–';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${PLAYER_COLORS[pi]};margin-right:6px;"></span><strong>${player}</strong></td>
+      <td>${cold ? cold.avg.toFixed(1) + ` <small>(${cold.n}×)</small>` : '–'}</td>
+      <td>${mild ? mild.avg.toFixed(1) + ` <small>(${mild.n}×)</small>` : '–'}</td>
+      <td>${warm ? warm.avg.toFixed(1) + ` <small>(${warm.n}×)</small>` : '–'}</td>
+      <td><strong>${lieblings}</strong></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderWindCorrelation(weatherData) {
+  const tbody = document.getElementById('tbody-wind');
+  tbody.innerHTML = '';
+  PLAYERS.forEach((player, pi) => {
+    const calm  = getPlayerWeatherAvg(weatherData, pi, w => w.wind < 15);
+    const windy = getPlayerWeatherAvg(weatherData, pi, w => w.wind >= 15 && w.wind <= 30);
+    const storm = getPlayerWeatherAvg(weatherData, pi, w => w.wind > 30);
+    const delta = (calm && windy) ? windy.avg - calm.avg : null;
+    const bewertung = delta === null ? '–' : delta > 1 ? '💨 Windkind' : delta < -1 ? '🍃 Mag Windstille' : '😐 Neutral';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${PLAYER_COLORS[pi]};margin-right:6px;"></span><strong>${player}</strong></td>
+      <td>${calm  ? calm.avg.toFixed(1)  + ` <small>(${calm.n}×)</small>`  : '–'}</td>
+      <td>${windy ? windy.avg.toFixed(1) + ` <small>(${windy.n}×)</small>` : '–'}</td>
+      <td>${storm ? storm.avg.toFixed(1) + ` <small>(${storm.n}×)</small>` : '–'}</td>
+      <td><strong>${bewertung}</strong></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+let weatherScatterInstance = null;
+function renderWeatherScatter(weatherData) {
+  const ctx = document.getElementById('weatherScatterChart');
+  if (!ctx) return;
+  if (weatherScatterInstance) weatherScatterInstance.destroy();
+  const datasets = PLAYERS.map((player, pi) => ({
+    label: player,
+    data: weatherData.filter(d => d.round.netto[pi] > 0).map(d => ({
+      x: d.weather.temp, y: d.round.netto[pi]
+    })),
+    backgroundColor: PLAYER_COLORS[pi] + '99',
+    borderColor: PLAYER_COLORS[pi],
+    pointRadius: 6, pointHoverRadius: 8,
+  }));
+  weatherScatterInstance = new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'top', labels: { font: { family: 'Inter', size: 13 }, usePointStyle: true } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y} Pkt. bei ${c.parsed.x}°C` } }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Temperatur (°C)' }, grid: { color: '#f0f0f0' } },
+        y: { title: { display: true, text: 'Netto-Score' }, grid: { color: '#f0f0f0' } }
+      }
+    }
+  });
+}
+
+function renderWeatherRoundsTable(weatherData) {
+  const tbody = document.getElementById('tbody-weather-rounds');
+  tbody.innerHTML = '';
+  const sorted = [...weatherData].sort((a,b) => b.round.isoDate.localeCompare(a.round.isoDate));
+  sorted.forEach(d => {
+    const w = d.weather;
+    const rainIcon = w.rain < 1 ? '☀️' : w.rain < 5 ? '🌦️' : '🌧️';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="white-space:nowrap;">${d.round.date}</td>
+      <td style="font-size:12px;">${normalizeVenueName(d.round.name)}</td>
+      <td>${w.temp.toFixed(0)}°C</td>
+      <td>${rainIcon} ${w.rain.toFixed(1)}</td>
+      <td>${w.wind.toFixed(0)}</td>
+      ${PLAYERS.map((_,pi) => `<td style="text-align:center;font-weight:${d.round.netto[pi]>0?'600':'400'};color:${d.round.netto[pi]>0?PLAYER_COLORS[pi]:'#ccc'};">${d.round.netto[pi]||'–'}</td>`).join('')}`;
+    tbody.appendChild(tr);
+  });
+}
+
 function renderTrainingTips() {
   const container = document.getElementById('tips-grid');
   if (!container) return;
@@ -1793,13 +2083,12 @@ function renderGesamt(gesamtData) {
 function switchTab(tab) {
   document.getElementById('page-tournament').classList.toggle('hidden', tab !== 'tournament');
   document.getElementById('page-stats').classList.toggle('active', tab === 'stats');
+  document.getElementById('page-weather').classList.toggle('active', tab === 'weather');
   document.getElementById('tab-tournament').classList.toggle('active', tab === 'tournament');
   document.getElementById('tab-stats').classList.toggle('active', tab === 'stats');
-  if (tab === 'stats') {
-    // Immer neu laden damit aktuelle Saison-Daten einfließen
-    statsLoaded = false;
-    loadAllStats();
-  }
+  document.getElementById('tab-weather').classList.toggle('active', tab === 'weather');
+  if (tab === 'stats') { statsLoaded = false; loadAllStats(); }
+  if (tab === 'weather' && !weatherLoaded) loadWeatherData();
 }
 
 // ---- STATS ENGINE ----
