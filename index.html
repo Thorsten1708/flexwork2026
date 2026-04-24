@@ -685,7 +685,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '3.7';
+const APP_VERSION = '3.8';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1315,8 +1315,7 @@ function switchTab(tab) {
 
 // ---- STATS ENGINE ----
 let statsLoaded = false;
-let allSeasonsData = {}; // { '2022': {qualiRounds, finalRounds}, ... }
-const PLAYER_COLORS = ['#CC0000', '#1565C0', '#2E7D32', '#F57F17'];
+let allSeasonsData = {};
 const profileCharts = {};
 
 async function loadAllStats() {
