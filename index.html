@@ -709,7 +709,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '4.1';
+const APP_VERSION = '4.2';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1645,6 +1645,9 @@ function normalizeVenueName(name) {
   
   // Idstein (verschiedene Schreibweisen)
   if (/idstein/i.test(n)) return 'Idstein';
+
+  // Hof Hausen / Hofheim → gleicher Platz
+  if (/hof.?hausen|hofheim/i.test(n)) return 'Hofheim';
   
   // Andere Plätze: Klammern und Zusätze entfernen
   return n.replace(/\s*\([^)]+\)/g, '').replace(/\s*[–-]\s*[IVX]+.*$/i, '').trim();
