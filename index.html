@@ -870,7 +870,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '4.6';
+const APP_VERSION = '4.7';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1287,17 +1287,18 @@ async function prefetchWeatherForCurrentSeason() {
   }
 }
 
-function getWeatherBadge(w) {
-  if (!w) return '';
+function getWeatherBadge(w, wKey) {
+  if (!w) return wKey ? `<span class="weather-badge" data-weather-key="${wKey}">⏳</span>` : '';
   const rainIcon = w.rain < 1 ? '☀️' : w.rain < 5 ? '🌦️' : '🌧️';
-  return `<span class="weather-badge">${rainIcon} ${w.temp.toFixed(0)}°C · ${w.wind.toFixed(0)} km/h</span>`;
+  const keyAttr = wKey ? ` data-weather-key="${wKey}"` : '';
+  return `<span class="weather-badge"${keyAttr}>${rainIcon} ${w.temp.toFixed(0)}°C · ${w.wind.toFixed(0)} km/h</span>`;
 }
 
 function updateRoundWeatherBadge(round, isoDate, coords, w) {
-  // Suche alle Runden-Header und füge Badge ein
   const key = `${isoDate}_${coords.lat}_${coords.lon}`;
-  document.querySelectorAll('[data-weather-key="' + key + '"]').forEach(el => {
-    el.innerHTML = getWeatherBadge(w);
+  // Ersetze den ganzen Badge-Span mit aktualisierten Daten
+  document.querySelectorAll(`[data-weather-key="${key}"]`).forEach(el => {
+    el.outerHTML = getWeatherBadge(w, key);
   });
 }
 
@@ -1878,7 +1879,7 @@ function renderQualiRounds() {
         const wKey = (isoDate && coords) ? `${isoDate}_${coords.lat}_${coords.lon}` : null;
         const w = wKey ? weatherCache[wKey] : null;
         const weatherHtml = wKey
-          ? `<span class="weather-badge" data-weather-key="${wKey}">${w ? getWeatherBadge(w) : '⏳'}</span>`
+          ? `${getWeatherBadge(w, wKey)}`
           : '';
         header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span><span class="round-date">${round.date}</span>${weatherHtml}${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}`;
       } else {
@@ -1963,7 +1964,7 @@ function renderFinalRounds() {
     const wKey = (isoDate && coords) ? `${isoDate}_${coords.lat}_${coords.lon}` : null;
     const w = wKey ? weatherCache[wKey] : null;
     const weatherHtml = wKey
-      ? `<span class="weather-badge" data-weather-key="${wKey}">${w ? getWeatherBadge(w) : '⏳'}</span>`
+      ? `${getWeatherBadge(w, wKey)}`
       : '';
     header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span><span class="round-date">${round.date}</span>${weatherHtml}`;
     card.appendChild(header);
