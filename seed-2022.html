@@ -25,7 +25,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 function log(msg) { document.getElementById('log').textContent += msg + '\n'; }
 
-// Hinweis: 2022 hatte keine Endrunde (alle Werte 0)
+// Hinweis: 2022 hatte eine Endrunde in Bad Griesbach (08.-10.09.22)
 const data2022 = {
   qualiRounds: [
     { name: 'Bad Griesbach - Uttlau', date: '12.09.21', fixed: true,
@@ -47,13 +47,13 @@ const data2022 = {
   ],
   finalRounds: [
     { name: 'Bad Griesbach I (Do) – Porsche', date: '08.09.22',
-      netto: [0, 0, 0, 0], brutto: [0, 0, 0, 0] },
+      netto: [28, 39, 23, 35], brutto: [19, 20, 10, 18] },
     { name: 'Bad Griesbach II (Fr) – Uttlau', date: '09.09.22',
-      netto: [0, 0, 0, 0], brutto: [0, 0, 0, 0] },
+      netto: [30, 38, 33, 25], brutto: [22, 20, 16, 13] },
     { name: 'Bad Griesbach III (Sa) – Beckenbauer', date: '10.09.22',
-      netto: [0, 0, 0, 0], brutto: [0, 0, 0, 0] },
+      netto: [31, 30, 30, 28], brutto: [22, 12, 11, 11] },
     { name: 'Bad Griesbach IV (Sa) – Porsche', date: '10.09.22',
-      netto: [0, 0, 0, 0], brutto: [0, 0, 0, 0] },
+      netto: [34, 32, 24, 31], brutto: [26, 15, 9, 15] },
   ]
 };
 
