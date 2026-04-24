@@ -407,6 +407,13 @@
   .venue-table th { background: #2E7D32; color: white; }
   .venue-table td.venue-best { background: #e8f5e9; font-weight: 700; color: #2E7D32; }
 
+  /* Weather Badge in Runden-Header */
+  .weather-badge {
+    font-size: 11px; opacity: 0.9; background: rgba(255,255,255,0.2);
+    padding: 2px 7px; border-radius: 10px; white-space: nowrap;
+    margin-left: auto;
+  }
+
   /* Stats loading */
   .stats-loading { text-align: center; padding: 48px; color: var(--muted); font-size: 15px; }
 
@@ -863,7 +870,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '4.5';
+const APP_VERSION = '4.6';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1257,8 +1264,45 @@ function renderMonthStats() {
 }
 
 
-// ---- WETTER-ENGINE ----
+// ---- WETTER-CACHE für Turnier-Ansicht ----
+const weatherCache = {}; // key: "isoDate_lat_lon" → {temp, rain, wind}
+
+async function prefetchWeatherForCurrentSeason() {
+  if (!state.qualiRounds) return;
+  const rounds = [...state.qualiRounds, ...state.finalRounds];
+  for (const r of rounds) {
+    if (!r.netto.some(v => v > 0) || !r.date || /tbd|ausgefallen/i.test(r.name)) continue;
+    const isoDate = parseDate(r.date);
+    if (!isoDate) continue;
+    const coords = getVenueCoords(r.name);
+    if (!coords) continue;
+    const key = `${isoDate}_${coords.lat}_${coords.lon}`;
+    if (weatherCache[key]) continue;
+    const w = await fetchWeatherForRound(isoDate, coords);
+    if (w) {
+      weatherCache[key] = w;
+      // Header der Runde aktualisieren
+      updateRoundWeatherBadge(r, isoDate, coords, w);
+    }
+  }
+}
+
+function getWeatherBadge(w) {
+  if (!w) return '';
+  const rainIcon = w.rain < 1 ? '☀️' : w.rain < 5 ? '🌦️' : '🌧️';
+  return `<span class="weather-badge">${rainIcon} ${w.temp.toFixed(0)}°C · ${w.wind.toFixed(0)} km/h</span>`;
+}
+
+function updateRoundWeatherBadge(round, isoDate, coords, w) {
+  // Suche alle Runden-Header und füge Badge ein
+  const key = `${isoDate}_${coords.lat}_${coords.lon}`;
+  document.querySelectorAll('[data-weather-key="' + key + '"]').forEach(el => {
+    el.innerHTML = getWeatherBadge(w);
+  });
+}
+
 let weatherLoaded = false;
+let weatherPrefetched = false;
 
 // Koordinaten der bekannten Plätze
 const VENUE_COORDS = {
@@ -1829,7 +1873,14 @@ function renderQualiRounds() {
     const activeInHeader = header.contains(document.activeElement);
     if (!activeInHeader) {
       if (round.fixed) {
-        header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span><span class="round-date">${round.date}</span>${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}`;
+        const isoDate = parseDate(round.date);
+        const coords = isoDate ? getVenueCoords(round.name) : null;
+        const wKey = (isoDate && coords) ? `${isoDate}_${coords.lat}_${coords.lon}` : null;
+        const w = wKey ? weatherCache[wKey] : null;
+        const weatherHtml = wKey
+          ? `<span class="weather-badge" data-weather-key="${wKey}">${w ? getWeatherBadge(w) : '⏳'}</span>`
+          : '';
+        header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span><span class="round-date">${round.date}</span>${weatherHtml}${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}`;
       } else {
         const nameVal = round.name === 'tbd' ? '' : round.name;
         const dateVal = round.date === 'tt.mm.26' ? '' : round.date;
@@ -1907,7 +1958,14 @@ function renderFinalRounds() {
 
     const header = document.createElement('div');
     header.className = 'card-header';
-    header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span><span class="round-date">${round.date}</span>`;
+    const isoDate = parseDate(round.date);
+    const coords = isoDate ? getVenueCoords(round.name) : null;
+    const wKey = (isoDate && coords) ? `${isoDate}_${coords.lat}_${coords.lon}` : null;
+    const w = wKey ? weatherCache[wKey] : null;
+    const weatherHtml = wKey
+      ? `<span class="weather-badge" data-weather-key="${wKey}">${w ? getWeatherBadge(w) : '⏳'}</span>`
+      : '';
+    header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span><span class="round-date">${round.date}</span>${weatherHtml}`;
     card.appendChild(header);
 
     const tableWrap2 = document.createElement('div');
@@ -2618,6 +2676,12 @@ function recalcAndRender() {
 
   attachInputListeners();
   updateInputState();
+
+  // Wetterdaten im Hintergrund nachladen (nur einmal)
+  if (!weatherPrefetched) {
+    weatherPrefetched = true;
+    setTimeout(() => prefetchWeatherForCurrentSeason(), 1500);
+  }
 }
 
 // Service Worker registrieren
