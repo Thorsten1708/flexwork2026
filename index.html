@@ -709,7 +709,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '3.9';
+const APP_VERSION = '4.0';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1334,7 +1334,11 @@ function switchTab(tab) {
   document.getElementById('page-stats').classList.toggle('active', tab === 'stats');
   document.getElementById('tab-tournament').classList.toggle('active', tab === 'tournament');
   document.getElementById('tab-stats').classList.toggle('active', tab === 'stats');
-  if (tab === 'stats' && !statsLoaded) loadAllStats();
+  if (tab === 'stats') {
+    // Immer neu laden damit aktuelle Saison-Daten einfließen
+    statsLoaded = false;
+    loadAllStats();
+  }
 }
 
 // ---- STATS ENGINE ----
