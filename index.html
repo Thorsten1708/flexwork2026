@@ -501,8 +501,7 @@ const db = firebase.firestore();
 //   Neue Saisons:         seasons/{seasonId}/tournaments/{tournamentId}
 const SEASONS = {
   '2026': { label: 'Saison 2026', legacy: true, legacyDoc: 'mfw2026' },
-  // Neue Saisons hier eintragen, z.B.:
-  // '2027': { label: 'Saison 2027', legacy: false, tournamentId: 'mfw2027' },
+  '2025': { label: 'Saison 2025', legacy: false, tournamentId: 'mfw2025' },
 };
 let currentSeason = '2026';
 
@@ -538,7 +537,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '3.1';
+const APP_VERSION = '3.2';
 
 function toggleLock() {
   if (isUnlocked) {

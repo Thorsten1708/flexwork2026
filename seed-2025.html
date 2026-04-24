@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Seed 2025 Data</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<h2>Saison 2025 – Daten in Firestore schreiben</h2>
+<button onclick="seedData()" style="font-size:18px;padding:12px 24px;background:#CC0000;color:white;border:none;border-radius:8px;cursor:pointer;">
+  ▶ Jetzt Saison 2025 einspielen
+</button>
+<pre id="log" style="margin-top:20px;background:#f5f5f5;padding:16px;border-radius:8px;font-size:13px;"></pre>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAq4W1dbbwQKst0ZmZOkITJqYMpALukqHQ",
+  authDomain: "flexwork2026.firebaseapp.com",
+  projectId: "flexwork2026",
+  storageBucket: "flexwork2026.firebasestorage.app",
+  messagingSenderId: "618329184932",
+  appId: "1:618329184932:web:6da142379d38c89552a431"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function log(msg) {
+  document.getElementById('log').textContent += msg + '\n';
+}
+
+const data2025 = {
+  qualiRounds: [
+    { name: 'Bad Griesbach - Uttlau', date: '08.09.24', fixed: true,
+      netto: [27, 26, 41, 33], brutto: [19, 15, 19, 18] },
+    { name: 'Friedberg', date: '20.09.24', fixed: true,
+      netto: [32, 28, 0, 29], brutto: [24, 13, 0, 14] },
+    { name: 'Kiawah Riedstadt', date: '18.10.24', fixed: true,
+      netto: [33, 30, 27, 26], brutto: [26, 15, 8, 15] },
+    { name: 'Hof Hausen', date: '11.04.25', fixed: true,
+      netto: [28, 31, 28, 31], brutto: [21, 18, 13, 17] },
+    { name: 'Bachgrund', date: '16.05.25', fixed: true,
+      netto: [24, 33, 22, 31], brutto: [18, 17, 7, 17] },
+    { name: 'Geiselwind', date: '11.07.25', fixed: true,
+      netto: [31, 32, 29, 35], brutto: [23, 15, 12, 18] },
+    { name: 'tbd', date: 'tt.mm.25', fixed: false,
+      netto: [0, 0, 0, 0], brutto: [0, 0, 0, 0] },
+    { name: 'tbd', date: 'tt.mm.25', fixed: false,
+      netto: [0, 0, 0, 0], brutto: [0, 0, 0, 0] },
+  ],
+  finalRounds: [
+    { name: 'Bad Griesbach I (Do) – Porsche', date: '11.09.25',
+      netto: [30, 34, 30, 33], brutto: [21, 16, 14, 16] },
+    { name: 'Bad Griesbach II (Fr) – Beckenbauer', date: '12.09.25',
+      netto: [38, 30, 21, 32], brutto: [28, 13, 8, 16] },
+    { name: 'Bad Griesbach III (Fr) – Porsche', date: '12.09.25',
+      netto: [37, 36, 24, 31], brutto: [27, 18, 8, 18] },
+    { name: 'Bad Griesbach IV (Sa) – Brunnwies', date: '13.09.25',
+      netto: [39, 26, 17, 34], brutto: [26, 10, 5, 17] },
+  ]
+};
+
+async function seedData() {
+  try {
+    log('Schreibe Saison 2025 nach seasons/2025/tournaments/mfw2025 ...');
+    await db.collection('seasons').doc('2025')
+            .collection('tournaments').doc('mfw2025')
+            .set(data2025);
+    log('✅ Erfolgreich gespeichert!');
+    log('');
+    log('Du kannst dieses Fenster jetzt schließen.');
+  } catch (err) {
+    log('❌ Fehler: ' + err.message);
+  }
+}
+</script>
+</body>
+</html>
