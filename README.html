@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>README – Meeting@FlexWork Golf App</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --red: #CC0000; --red-dark: #990000;
+    --bg: #f5f5f5; --card: #fff;
+    --border: #e0e0e0; --text: #1a1a1a; --muted: #666;
+  }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+  header {
+    background: var(--red); color: white;
+    padding: 16px 24px; display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 100;
+  }
+  header .logo { font-size: 22px; font-weight: 700; background: white; color: var(--red); padding: 4px 8px; border-radius: 4px; flex-shrink: 0; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header p { font-size: 12px; opacity: 0.85; }
+  header a { color: white; opacity: 0.85; font-size: 13px; margin-left: auto; text-decoration: none; border: 1px solid rgba(255,255,255,0.5); padding: 6px 12px; border-radius: 6px; white-space: nowrap; }
+  header a:hover { background: rgba(255,255,255,0.15); }
+
+  .layout { display: flex; max-width: 1200px; margin: 0 auto; gap: 0; }
+
+  nav.sidebar {
+    width: 240px; flex-shrink: 0; padding: 24px 0;
+    position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto;
+  }
+  nav.sidebar a { display: block; padding: 7px 24px; font-size: 13px; color: var(--muted); text-decoration: none; border-left: 3px solid transparent; transition: all 0.15s; }
+  nav.sidebar a:hover { color: var(--red); border-left-color: var(--red); background: #fff8f8; }
+  nav.sidebar .nav-section { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #aaa; padding: 12px 24px 4px; }
+
+  .content { flex: 1; padding: 32px 32px 64px; min-width: 0; }
+
+  h2 { font-size: 22px; font-weight: 700; color: var(--red); border-left: 4px solid var(--red); padding-left: 12px; margin: 40px 0 16px; }
+  h2:first-child { margin-top: 0; }
+  h3 { font-size: 16px; font-weight: 700; margin: 24px 0 10px; color: #333; }
+  p { margin-bottom: 12px; font-size: 14px; color: #333; }
+  ul, ol { margin: 0 0 12px 20px; font-size: 14px; color: #333; }
+  li { margin-bottom: 6px; }
+  a { color: var(--red); }
+
+  .card { background: var(--card); border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 20px 24px; margin-bottom: 16px; }
+
+  pre {
+    background: #1a1a1a; color: #f8f8f2; border-radius: 8px;
+    padding: 16px 20px; font-size: 13px; overflow-x: auto; margin-bottom: 16px;
+    line-height: 1.5; font-family: 'Courier New', monospace;
+  }
+  p code, li code, td code {
+    background: #f0f0f0; color: var(--red); padding: 1px 5px;
+    border-radius: 3px; font-size: 12px; font-family: 'Courier New', monospace;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 14px; }
+  th { background: #1a1a1a; color: white; padding: 10px 14px; text-align: left; font-size: 13px; }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; margin-right: 4px; }
+  .badge-red { background: #ffe0e0; color: var(--red); }
+
+  .info-box { background: #fff8f8; border: 1px solid #ffcccc; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+  .info-box strong { color: var(--red); }
+
+  .note-box { background: #fff3e0; border: 1px solid #ffe0b2; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #555; margin-bottom: 16px; }
+  .note-box strong { color: #E65100; }
+
+  .step { display: flex; gap: 14px; margin-bottom: 16px; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--red); color: white; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .step-content { flex: 1; }
+  .step-content strong { display: block; font-size: 14px; margin-bottom: 3px; }
+  .step-content p { margin: 0; font-size: 13px; color: var(--muted); }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 8px 0 0; }
+
+  @media (max-width: 768px) {
+    nav.sidebar { display: none; }
+    .content { padding: 20px 16px 48px; }
+    header h1 { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">DB</div>
+  <div>
+    <h1>Meeting@FlexWork – README</h1>
+    <p>Golf Turnier App · v3.6</p>
+  </div>
+  <a href="index.html">▶ Zur App</a>
+</header>
+
+<div class="layout">
+
+  <nav class="sidebar">
+    <div class="nav-section">Übersicht</div>
+    <a href="#overview">Projektübersicht</a>
+    <a href="#features">Features</a>
+    <div class="nav-section">Technik</div>
+    <a href="#architecture">Architektur</a>
+    <a href="#firestore">Firestore-Struktur</a>
+    <a href="#firebase-config">Firebase Konfiguration</a>
+    <div class="nav-section">Betrieb</div>
+    <a href="#new-season">Neue Saison anlegen</a>
+    <a href="#seed">Seed-Scripts</a>
+    <a href="#deployment">Deployment</a>
+    <div class="nav-section">Referenz</div>
+    <a href="#game-rules">Spielregeln</a>
+    <a href="#players">Spieler & PINs</a>
+    <a href="#changelog">Versionshistorie</a>
+  </nav>
+
+  <div class="content">
+
+    <!-- ÜBERSICHT -->
+    <h2 id="overview">🏌️ Projektübersicht</h2>
+    <p>Die <strong>Meeting@FlexWork Golf App</strong> ist eine Progressive Web App (PWA) zur Verwaltung und Auswertung des jährlichen Meeting@FlexWork Golf-Turniers. Sie läuft vollständig im Browser, ist auf dem Smartphone installierbar und synchronisiert Ergebnisse in Echtzeit zwischen allen Geräten.</p>
+    <div class="info-box">
+      <strong>Live-URL:</strong> <a href="https://thorsten1708.github.io/flexwork2026/" target="_blank">https://thorsten1708.github.io/flexwork2026/</a>
+    </div>
+
+    <!-- FEATURES -->
+    <h2 id="features">📱 Features (v3.6)</h2>
+
+    <h3>Turnier-Tab</h3>
+    <ul>
+      <li><strong>Gesamtergebnis</strong> – Live-Rangliste mit Netto &amp; Brutto, automatisch berechnet</li>
+      <li><strong>Qualifikationsrunde</strong> – 8 Runden, Streicher-Regel (schlechteste Runde wird gestrichen), Ersatz-Werte bei Abwesenheit</li>
+      <li><strong>Endrunde Race4Munich</strong> – 4 Runden in Bad Griesbach, Faktor ×2 in Gesamtwertung</li>
+      <li><strong>Verlaufsdiagramm</strong> – Kumulierte Netto-Punkte über die Qualirunden (Chart.js)</li>
+      <li><strong>PDF-Export</strong> – Druckoptimierte Ansicht via Browser-Print</li>
+      <li><strong>Live-Sync</strong> – Echtzeit-Synchronisation über Firebase Firestore</li>
+      <li><strong>In-App Update-Banner</strong> – Benachrichtigung wenn ein anderes Gerät Daten ändert</li>
+      <li><strong>PIN-Schutz</strong> – Eingaben nur nach PIN-Eingabe möglich (PIN: 2026)</li>
+      <li><strong>PWA</strong> – Installierbar auf iOS &amp; Android, offline-fähig via Service Worker</li>
+    </ul>
+
+    <h3>Statistik-Tab</h3>
+    <ul>
+      <li><strong>Hall of Fame</strong> – Saison-Ranglisten 2022–2026, Gesamtbilanz aller Siege</li>
+      <li><strong>Spieler-Profile</strong> – Ø Netto, beste/schlechteste Runde, Saison-Siege, Verlaufschart</li>
+      <li><strong>Direktvergleich</strong> – Rundensiege aller Spieler über alle Saisons</li>
+      <li><strong>Platzkönige</strong> – Bester Durchschnitt auf Plätzen die mehrfach gespielt wurden</li>
+    </ul>
+
+    <h3>Regelquiz</h3>
+    <ul>
+      <li><strong>Monatliches Quiz</strong> – 6 Fragen (2× leicht, 2× mittel, 2× schwer), zufällig aus 100 Fragen</li>
+      <li><strong>Rangliste</strong> – Monats- und Saison-Gesamtstand</li>
+      <li><strong>Auflösung</strong> – Richtige Antworten werden am 1. des Folgemonats freigeschaltet</li>
+      <li><strong>Admin-Bereich</strong> – Antworten aufdecken, Erinnerungsmail, Saison-Reset</li>
+    </ul>
+
+    <!-- ARCHITEKTUR -->
+    <h2 id="architecture">🏗️ Architektur</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Komponente</th><th>Technologie</th><th>Details</th></tr></thead>
+        <tbody>
+          <tr><td>Frontend</td><td>HTML/CSS/JS</td><td>Vanilla Single Page App, kein Framework</td></tr>
+          <tr><td>Datenbank</td><td>Firebase Firestore</td><td>Realtime NoSQL, kostenloser Spark Plan</td></tr>
+          <tr><td>Hosting</td><td>GitHub Pages</td><td>Automatisches Deployment bei Push auf main</td></tr>
+          <tr><td>Charts</td><td>Chart.js 4.4</td><td>CDN via jsdelivr.net</td></tr>
+          <tr><td>Fonts</td><td>Inter</td><td>Google Fonts</td></tr>
+          <tr><td>PWA</td><td>Service Worker</td><td>Network-First für HTML, Cache-First für Assets, Version mfw2026-v16</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- FIRESTORE -->
+    <h2 id="firestore">🔥 Firestore-Struktur</h2>
+    <pre><code># Aktuelle Saison 2026 (Legacy-Pfad)
+tournaments/
+  mfw2026/
+    qualiRounds: [...]
+    finalRounds: [...]
+
+# Historische Saisons (neuer Pfad)
+seasons/
+  2025/
+    tournaments/
+      mfw2025/
+        qualiRounds: [...]
+        finalRounds: [...]
+  2024/ ...
+  2023/ ...
+  2022/ ...
+
+# Regelquiz
+quiz/
+  {YYYY-MM}/
+    answers/
+      {Spielername}/
+        answers, score, points, submittedAt, questions
+    revealed: true/false</code></pre>
+
+    <h3>Datenstruktur einer Runde</h3>
+    <pre><code>{
+  "name": "Bad Griesbach - Uttlau",
+  "date": "14.09.25",
+  "fixed": true,
+  "netto": [22, 23, 26, 23],   // [Lutz, Markus, Henrick, Thorsten]
+  "brutto": [13, 8, 11, 9]
+}</code></pre>
+    <div class="info-box"><strong>Hinweis:</strong> Wert <code>0</code> bedeutet „nicht gespielt". Die App berechnet dann automatisch einen Ersatz-Wert (schlechtester Wert der anderen Spieler dieser Runde).</div>
+
+    <!-- FIREBASE CONFIG -->
+    <h2 id="firebase-config">🔐 Firebase Konfiguration</h2>
+    <p><strong>Project ID:</strong> <code>flexwork2026</code> &nbsp;·&nbsp; <a href="https://console.firebase.google.com/project/flexwork2026" target="_blank">Firebase Console</a></p>
+
+    <h3>Firestore Security Rules</h3>
+    <pre><code>rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /tournaments/{doc} {
+      allow read, write: if true;
+    }
+    match /seasons/{season}/tournaments/{doc} {
+      allow read, write: if true;
+    }
+    match /quiz/{month}/answers/{player} {
+      allow read, write: if true;
+    }
+  }
+}</code></pre>
+    <div class="note-box"><strong>Hinweis:</strong> <code>if true</code> ist für eine private App mit PIN-Schutz ausreichend. Für erhöhte Sicherheit kann Firebase Authentication ergänzt werden.</div>
+
+    <!-- NEUE SAISON -->
+    <h2 id="new-season">📅 Neue Saison anlegen</h2>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <strong>Saison in index.html registrieren</strong>
+        <p>In der <code>SEASONS</code>-Konstante einen neuen Eintrag hinzufügen.</p>
+      </div>
+    </div>
+    <pre><code>const SEASONS = {
+  '2026': { label: 'Saison 2026', legacy: true, legacyDoc: 'mfw2026' },
+  '2027': { label: 'Saison 2027', legacy: false, tournamentId: 'mfw2027' }, // NEU
+};</code></pre>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <strong>Seed-Script erstellen</strong>
+        <p>Eine neue <code>seed-2027.html</code> nach dem Muster der bestehenden Scripts anlegen (siehe <code>seed-2025.html</code> als Vorlage). Plätze und Daten eintragen, dann im Browser öffnen und Button klicken.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <strong>Versionsnummer erhöhen</strong>
+        <p><code>const APP_VERSION = '4.0';</code></p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <strong>Pushen</strong>
+        <p>Die App deployed automatisch via GitHub Pages.</p>
+      </div>
+    </div>
+    <pre><code>git add index.html seed-2027.html
+git commit -m "v4.0: Saison 2027 hinzugefügt"
+git push</code></pre>
+
+    <!-- SEED -->
+    <h2 id="seed">🌱 Historische Daten einspielen (Seed-Scripts)</h2>
+    <p>Für jede Saison gibt es ein Seed-Script das die Daten einmalig in Firestore schreibt. Einfach URL öffnen → Button klicken → fertig. Kann jederzeit wiederholt werden (überschreibt).</p>
+    <table>
+      <thead><tr><th>Script</th><th>URL</th></tr></thead>
+      <tbody>
+        <tr><td><code>seed-2025.html</code></td><td><a href="seed-2025.html" target="_blank">seed-2025.html</a></td></tr>
+        <tr><td><code>seed-2024.html</code></td><td><a href="seed-2024.html" target="_blank">seed-2024.html</a></td></tr>
+        <tr><td><code>seed-2023.html</code></td><td><a href="seed-2023.html" target="_blank">seed-2023.html</a></td></tr>
+        <tr><td><code>seed-2022.html</code></td><td><a href="seed-2022.html" target="_blank">seed-2022.html</a></td></tr>
+      </tbody>
+    </table>
+
+    <!-- DEPLOYMENT -->
+    <h2 id="deployment">🚢 Deployment</h2>
+    <p>Die App wird automatisch über <strong>GitHub Pages</strong> deployed. Jeder Push auf den <code>main</code>-Branch löst ein Deployment aus (Dauer: ca. 1–2 Minuten).</p>
+    <pre><code>git add .
+git commit -m "v3.x: Beschreibung der Änderungen"
+git push</code></pre>
+    <div class="note-box">
+      <strong>⚠️ iOS / PWA Cache leeren:</strong> Falls auf dem iPhone eine veraltete Version angezeigt wird, die PWA vom Homescreen löschen und in Safari neu aufrufen. „Verlauf und Cache löschen" in Safari reicht nicht – der Service Worker Cache wird dabei nicht geleert.
+    </div>
+
+    <!-- SPIELREGELN -->
+    <h2 id="game-rules">🎮 Spielregeln (implementiert)</h2>
+
+    <h3>Qualifikationsrunde</h3>
+    <ul>
+      <li>Jeder Spieler spielt alle Runden</li>
+      <li><strong>Streicher-Regel:</strong> Die schlechteste Netto-Runde wird gestrichen</li>
+      <li><strong>Ersatz-Wert:</strong> Fehlt ein Spieler, bekommt er den schlechtesten Wert der anderen Spieler dieser Runde</li>
+      <li>Streicher bei Ersatz-Runden: Der schlechteste Ersatz-Wert wird gestrichen</li>
+    </ul>
+
+    <h3>Endrunde Race4Munich</h3>
+    <ul>
+      <li>4 Runden in Bad Griesbach</li>
+      <li>Kein Streicher – alle 4 Runden zählen</li>
+      <li>Faktor <strong>×2</strong> in der Gesamtwertung</li>
+    </ul>
+
+    <h3>Gesamtwertung</h3>
+    <pre><code>Gesamt Netto  = Quali Netto gewertet + (Endrunde Netto × 2)
+Gesamt Brutto = Quali Brutto gewertet + (Endrunde Brutto × 2)</code></pre>
+
+    <h3>Regelquiz</h3>
+    <ul>
+      <li>6 Fragen pro Monat: 2× leicht (1 Pkt.), 2× mittel (2 Pkt.), 2× schwer (3 Pkt.) = max. 12 Punkte</li>
+      <li>Fragen werden monatlich per Seed-Zufallsauswahl aus 100 Fragen gezogen</li>
+      <li>Jeder Spieler kann das Quiz pro Monat nur einmal absolvieren</li>
+      <li>Auflösung erfolgt am 1. des Folgemonats (Admin: „Antworten aufdecken")</li>
+    </ul>
+
+    <!-- SPIELER -->
+    <h2 id="players">👥 Spieler &amp; PINs</h2>
+    <table>
+      <thead><tr><th>Index</th><th>Name</th><th>Farbe</th><th>Quiz-PIN</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>Lutz</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#CC0000;vertical-align:middle;margin-right:6px;"></span>#CC0000</td><td><code>L11Sp</code></td></tr>
+        <tr><td>1</td><td>Markus</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#1565C0;vertical-align:middle;margin-right:6px;"></span>#1565C0</td><td><code>MBak22</code></td></tr>
+        <tr><td>2</td><td>Henrick</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#2E7D32;vertical-align:middle;margin-right:6px;"></span>#2E7D32</td><td><code>33HKlo</code></td></tr>
+        <tr><td>3</td><td>Thorsten</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#F57F17;vertical-align:middle;margin-right:6px;"></span>#F57F17</td><td><code>44Thor</code></td></tr>
+      </tbody>
+    </table>
+    <div class="info-box"><strong>Admin-PIN (Quiz):</strong> <code>admin2026</code> &nbsp;·&nbsp; <strong>App-PIN (Turnier):</strong> <code>2026</code></div>
+
+    <!-- CHANGELOG -->
+    <h2 id="changelog">📋 Versionshistorie</h2>
+    <table>
+      <thead><tr><th>Version</th><th>Änderungen</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge badge-red">v3.6</span></td><td>Regelquiz: iOS autocapitalize-Fix, neue Quiz-PINs (Markus/Henrick), SW Cache v16, Doku aktualisiert</td></tr>
+        <tr><td><span class="badge badge-red">v3.5</span></td><td>Statistik-Tab: Hall of Fame, Spieler-Profile, Direktvergleich, Platzkönige</td></tr>
+        <tr><td><span class="badge badge-red">v3.4</span></td><td>Saison 2023 + 2022 hinzugefügt, Seed-Scripts</td></tr>
+        <tr><td><span class="badge badge-red">v3.3</span></td><td>Saison 2024 hinzugefügt</td></tr>
+        <tr><td><span class="badge badge-red">v3.2</span></td><td>Saison 2025 hinzugefügt</td></tr>
+        <tr><td><span class="badge badge-red">v3.1</span></td><td>Fokus-Fix Eingabefelder, Mobile Header optimiert</td></tr>
+        <tr><td><span class="badge badge-red">v3.0</span></td><td>Toast, Live-Berechnung, Chart, PDF-Export, Multi-Saison-Architektur, Update-Banner</td></tr>
+        <tr><td><span class="badge badge-red">v2.1</span></td><td>PIN/Lock-System, Ersatz-Werte, Streicher-Logik verfeinert</td></tr>
+        <tr><td><span class="badge badge-red">v1.x</span></td><td>Grundversion mit Firebase Firestore</td></tr>
+      </tbody>
+    </table>
+
+  </div><!-- end content -->
+</div><!-- end layout -->
+
+</body>
+</html>
