@@ -1,8 +1,10 @@
-const CACHE = 'mfw2026-v14';
+const CACHE = 'mfw2026-v15';
 const ASSETS = [
   '/flexwork2026/',
   '/flexwork2026/index.html',
   '/flexwork2026/manifest.json',
+  '/flexwork2026/quiz.html',
+  '/flexwork2026/questions.js',
 ];
 
 self.addEventListener('install', e => {

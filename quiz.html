@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regelquiz – Meeting@FlexWork</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --red: #CC0000; --red-dark: #990000;
+    --bg: #f5f5f5; --card: #fff;
+    --border: #e0e0e0; --text: #1a1a1a; --muted: #666;
+    --green: #2E7D32; --gold: #F57F17;
+  }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  header {
+    background: var(--red); color: white;
+    padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 100;
+  }
+  header .logo { font-size: 20px; font-weight: 700; background: white; color: var(--red); padding: 3px 7px; border-radius: 4px; flex-shrink: 0; }
+  header h1 { font-size: 16px; font-weight: 600; flex: 1; }
+  header a { color: white; font-size: 13px; opacity: 0.85; text-decoration: none; border: 1px solid rgba(255,255,255,0.4); padding: 5px 10px; border-radius: 6px; }
+  header a:hover { background: rgba(255,255,255,0.15); }
+
+  .version-bar { background: var(--red-dark); color: rgba(255,255,255,0.7); text-align: right; font-size: 11px; padding: 2px 16px; }
+
+  main { max-width: 680px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .card { background: var(--card); border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 24px; margin-bottom: 16px; }
+  .card-title { font-size: 18px; font-weight: 700; color: var(--red); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+  .section-title { font-size: 18px; font-weight: 700; color: var(--red); border-left: 4px solid var(--red); padding-left: 12px; margin-bottom: 16px; }
+
+  /* Login */
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  select, input[type=text], input[type=password], input[type=email] {
+    width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.15s;
+  }
+  select:focus, input:focus { border-color: var(--red); box-shadow: 0 0 0 2px rgba(204,0,0,0.1); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600;
+    font-family: inherit; cursor: pointer; border: none; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--red); color: white; width: 100%; }
+  .btn-primary:hover { background: var(--red-dark); }
+  .btn-secondary { background: #f0f0f0; color: var(--text); }
+  .btn-secondary:hover { background: #e0e0e0; }
+  .btn-green { background: var(--green); color: white; width: 100%; }
+  .btn-green:hover { background: #1b5e20; }
+  .btn-sm { padding: 8px 16px; font-size: 13px; }
+
+  .error-msg { background: #ffe0e0; color: var(--red); border-radius: 8px; padding: 10px 14px; font-size: 14px; margin-bottom: 12px; display: none; }
+  .error-msg.show { display: block; }
+
+  /* Progress */
+  .progress-bar { background: #f0f0f0; border-radius: 10px; height: 8px; margin-bottom: 20px; overflow: hidden; }
+  .progress-fill { background: var(--red); height: 100%; border-radius: 10px; transition: width 0.3s ease; }
+  .progress-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+
+  /* Quiz */
+  .difficulty-badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-bottom: 12px;
+  }
+  .diff-leicht { background: #e8f5e9; color: var(--green); }
+  .diff-mittel { background: #fff3e0; color: #E65100; }
+  .diff-schwer { background: #fce4ec; color: #c62828; }
+
+  .question-text { font-size: 17px; font-weight: 600; line-height: 1.5; margin-bottom: 20px; }
+  .rule-ref { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option-btn {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; border: 2px solid var(--border); border-radius: 10px;
+    background: white; cursor: pointer; font-size: 14px; font-family: inherit;
+    text-align: left; transition: all 0.15s; font-weight: 500;
+  }
+  .option-btn:hover { border-color: var(--red); background: #fff8f8; }
+  .option-btn.selected { border-color: var(--red); background: #fff0f0; }
+  .option-btn.correct { border-color: var(--green); background: #e8f5e9; color: var(--green); }
+  .option-btn.wrong { border-color: #c62828; background: #fce4ec; color: #c62828; }
+  .option-btn:disabled { cursor: not-allowed; }
+  .option-letter {
+    width: 28px; height: 28px; border-radius: 50%; background: #f0f0f0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .option-btn.selected .option-letter { background: var(--red); color: white; }
+  .option-btn.correct .option-letter { background: var(--green); color: white; }
+  .option-btn.wrong .option-letter { background: #c62828; color: white; }
+
+  .nav-btns { display: flex; gap: 10px; margin-top: 20px; }
+  .nav-btns .btn { flex: 1; }
+
+  /* Result */
+  .score-display {
+    text-align: center; padding: 24px;
+    background: linear-gradient(135deg, #fff8f8, #fff);
+    border-radius: 12px; margin-bottom: 20px;
+  }
+  .score-number { font-size: 64px; font-weight: 700; color: var(--red); line-height: 1; }
+  .score-label { font-size: 16px; color: var(--muted); margin-top: 4px; }
+  .score-stars { font-size: 32px; margin: 8px 0; }
+
+  /* Leaderboard */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { background: #1a1a1a; color: white; padding: 10px 12px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .rank-1 td { background: #fffbe6 !important; }
+  .rank-2 td { background: #f8f8f8 !important; }
+  .rank-3 td { background: #fff5ee !important; }
+
+  /* Answer reveal */
+  .answer-card { border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; border-left: 4px solid; }
+  .answer-card.correct-ans { border-color: var(--green); background: #e8f5e9; }
+  .answer-card.wrong-ans { border-color: #c62828; background: #fce4ec; }
+  .answer-card .q-text { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .answer-card .a-text { font-size: 13px; color: #333; }
+  .answer-card .rule { font-size: 11px; color: var(--muted); margin-top: 4px; font-style: italic; }
+
+  /* Admin */
+  .admin-section { margin-bottom: 24px; }
+  .admin-section h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: #333; }
+  .email-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .email-row label { width: 80px; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+  .email-row input { flex: 1; }
+
+  /* Month badge */
+  .month-badge {
+    display: inline-block; background: var(--red); color: white;
+    font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 12px; margin-bottom: 16px;
+  }
+
+  /* Waiting state */
+  .waiting-card { text-align: center; padding: 32px 24px; }
+  .waiting-icon { font-size: 48px; margin-bottom: 12px; }
+  .waiting-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .waiting-text { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  /* Tab nav inside quiz */
+  .quiz-tabs { display: flex; gap: 0; background: #f0f0f0; border-radius: 10px; padding: 4px; margin-bottom: 20px; }
+  .quiz-tab { flex: 1; padding: 8px; text-align: center; font-size: 13px; font-weight: 600; border-radius: 7px; cursor: pointer; border: none; background: none; font-family: inherit; color: var(--muted); transition: all 0.15s; }
+  .quiz-tab.active { background: white; color: var(--red); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+  @media (max-width: 600px) {
+    .card { padding: 16px; }
+    .question-text { font-size: 15px; }
+    .score-number { font-size: 48px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">DB</div>
+  <h1>📋 Regelquiz des Monats</h1>
+  <a href="index.html">← App</a>
+</header>
+<div class="version-bar">Quiz v1.0</div>
+
+<main>
+
+  <!-- LOGIN VIEW -->
+  <div class="view active" id="view-login">
+    <div class="card">
+      <div class="card-title">🏌️ Anmelden</div>
+      <div id="login-error" class="error-msg">Falscher PIN oder Spieler nicht gefunden.</div>
+      <div class="form-group">
+        <label>Spieler</label>
+        <select id="player-select">
+          <option value="">– Spieler wählen –</option>
+          <option value="Lutz">Lutz</option>
+          <option value="Markus">Markus</option>
+          <option value="Henrick">Henrick</option>
+          <option value="Thorsten">Thorsten</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>PIN</label>
+        <input type="password" id="player-pin" placeholder="••••" maxlength="6">
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()">🔓 Anmelden</button>
+      <div style="text-align:center;margin-top:16px;">
+        <button class="btn btn-secondary btn-sm" onclick="showAdmin()">⚙️ Admin</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUIZ VIEW -->
+  <div class="view" id="view-quiz">
+    <div class="card">
+      <div id="quiz-month-badge" class="month-badge"></div>
+      <div class="progress-label">
+        <span id="progress-text">Frage 1 von 6</span>
+        <span id="progress-score">0 richtig</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div id="difficulty-badge" class="difficulty-badge diff-leicht">Leicht</div>
+      <div class="question-text" id="question-text"></div>
+      <div class="options" id="options-container"></div>
+      <div class="nav-btns">
+        <button class="btn btn-secondary" id="btn-prev" onclick="prevQuestion()" style="display:none;">← Zurück</button>
+        <button class="btn btn-primary" id="btn-next" onclick="nextQuestion()" disabled>Weiter →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBMIT VIEW -->
+  <div class="view" id="view-submit">
+    <div class="card">
+      <div class="card-title">✅ Quiz abschließen</div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:20px;">Du hast alle 6 Fragen beantwortet. Sobald du sendest, kannst du das Quiz diesen Monat nicht mehr wiederholen.</p>
+      <div id="submit-summary" style="margin-bottom:20px;"></div>
+      <button class="btn btn-green" onclick="submitQuiz()">📤 Antworten senden</button>
+      <button class="btn btn-secondary" style="margin-top:10px;" onclick="goBackToQuiz()">← Nochmal prüfen</button>
+    </div>
+  </div>
+
+  <!-- RESULT VIEW -->
+  <div class="view" id="view-result">
+    <div class="card">
+      <div class="score-display">
+        <div class="score-stars" id="result-stars"></div>
+        <div class="score-number" id="result-score"></div>
+        <div class="score-label">von 6 Fragen richtig</div>
+        <div style="font-size:14px;color:var(--muted);margin-top:8px;" id="result-msg"></div>
+      </div>
+      <div id="result-reveal"></div>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="showLeaderboard()">🏆 Rangliste ansehen</button>
+      <button class="btn btn-secondary" style="margin-top:10px;" onclick="doLogout()">← Abmelden</button>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD VIEW -->
+  <div class="view" id="view-leaderboard">
+    <div class="quiz-tabs">
+      <button class="quiz-tab active" onclick="showLbTab('monthly')">📅 Dieser Monat</button>
+      <button class="quiz-tab" onclick="showLbTab('season')">🏆 Saison</button>
+    </div>
+
+    <div id="lb-monthly">
+      <div class="section-title">📅 Ergebnisse <span id="lb-month-label"></span></div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <table id="tbl-monthly">
+          <thead><tr><th>Platz</th><th>Spieler</th><th>Richtig</th><th>Punkte</th></tr></thead>
+          <tbody id="tbody-monthly"></tbody>
+        </table>
+      </div>
+      <div id="lb-not-revealed" class="card" style="display:none;">
+        <div class="waiting-card">
+          <div class="waiting-icon">🔒</div>
+          <div class="waiting-title">Auflösung folgt</div>
+          <div class="waiting-text">Die richtigen Antworten werden am 1. des nächsten Monats angezeigt.</div>
+        </div>
+      </div>
+      <div id="lb-answers-reveal" style="display:none;">
+        <div class="section-title" style="margin-top:24px;">📖 Richtige Antworten</div>
+        <div id="answers-reveal-content"></div>
+      </div>
+    </div>
+
+    <div id="lb-season" style="display:none;">
+      <div class="section-title">🏆 Saison-Gesamtstand</div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <table id="tbl-season">
+          <thead><tr><th>Platz</th><th>Spieler</th><th>Monate</th><th>Gesamt</th><th>Ø/Monat</th></tr></thead>
+          <tbody id="tbody-season"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <button class="btn btn-secondary" style="margin-top:16px;" onclick="doLogout()">← Abmelden</button>
+  </div>
+
+  <!-- ADMIN VIEW -->
+  <div class="view" id="view-admin">
+    <div class="card">
+      <div class="card-title">⚙️ Admin-Bereich</div>
+      <div id="admin-login-section">
+        <div id="admin-error" class="error-msg">Falscher Admin-PIN.</div>
+        <div class="form-group">
+          <label>Admin-PIN</label>
+          <input type="password" id="admin-pin-input" placeholder="••••••">
+        </div>
+        <button class="btn btn-primary" onclick="doAdminLogin()">Einloggen</button>
+      </div>
+      <div id="admin-content" style="display:none;">
+
+        <div class="admin-section">
+          <h3>📧 E-Mail-Adressen der Spieler</h3>
+          <div class="email-row"><label>Lutz</label><input type="email" id="email-Lutz" placeholder="lutz@example.com"></div>
+          <div class="email-row"><label>Markus</label><input type="email" id="email-Markus" placeholder="markus@example.com"></div>
+          <div class="email-row"><label>Henrick</label><input type="email" id="email-Henrick" placeholder="henrick@example.com"></div>
+          <div class="email-row"><label>Thorsten</label><input type="email" id="email-Thorsten" placeholder="thorsten@example.com"></div>
+          <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="saveEmails()">💾 Speichern</button>
+        </div>
+
+        <div class="admin-section">
+          <h3>📤 Erinnerungsmail senden</h3>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Sendet eine Erinnerung an alle Spieler die das Quiz diesen Monat noch nicht ausgefüllt haben.</p>
+          <div id="emailjs-setup-hint" style="background:#fff3e0;border-radius:8px;padding:12px;font-size:13px;margin-bottom:12px;">
+            <strong>⚠️ EmailJS Setup erforderlich</strong> – siehe Dokumentation unten.
+          </div>
+          <button class="btn btn-primary" onclick="sendReminders()">📧 Erinnerung senden</button>
+        </div>
+
+        <div class="admin-section">
+          <h3>📅 Aktueller Monat</h3>
+          <div id="admin-month-info" style="font-size:14px;color:var(--muted);margin-bottom:12px;"></div>
+          <button class="btn btn-secondary btn-sm" onclick="showVerification()" style="margin-bottom:8px;">🔍 Fragen & Antworten prüfen</button>
+          <button class="btn btn-secondary btn-sm" onclick="revealAnswers()">🔓 Antworten aufdecken & Auswertung freigeben</button>
+          <div id="verification-panel" style="display:none;margin-top:16px;"></div>
+        </div>
+
+        <div class="admin-section">
+          <h3>🔄 Saison-Reset</h3>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Setzt alle Quiz-Punkte auf 0. Nur am Saisonende verwenden!</p>
+          <button class="btn btn-secondary btn-sm" style="color:#c62828;" onclick="confirmSeasonReset()">⚠️ Saison zurücksetzen</button>
+        </div>
+
+        <div class="admin-section">
+          <h3>📖 EmailJS Einrichtung</h3>
+          <div style="background:#f5f5f5;border-radius:8px;padding:16px;font-size:13px;line-height:1.7;">
+            <strong>Schritt 1:</strong> Account erstellen auf <a href="https://www.emailjs.com" target="_blank">emailjs.com</a> (kostenlos bis 200 Mails/Monat)<br>
+            <strong>Schritt 2:</strong> E-Mail-Service verbinden (z.B. Gmail)<br>
+            <strong>Schritt 3:</strong> Template erstellen mit Variablen: <code>{{to_name}}</code>, <code>{{month}}</code>, <code>{{quiz_url}}</code><br>
+            <strong>Schritt 4:</strong> In quiz.html die Konstanten setzen:<br>
+            <code style="display:block;background:#1a1a1a;color:#f8f8f2;padding:8px;border-radius:4px;margin:8px 0;">
+              const EMAILJS_SERVICE_ID = 'service_xxx';<br>
+              const EMAILJS_TEMPLATE_ID = 'template_xxx';<br>
+              const EMAILJS_PUBLIC_KEY = 'xxx';
+            </code>
+            <strong>Schritt 5:</strong> EmailJS SDK einbinden (bereits vorbereitet, nur auskommentieren)
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <button class="btn btn-secondary" style="margin-top:8px;" onclick="showView('view-login')">← Zurück</button>
+  </div>
+
+</main>
+
+<script src="questions.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAq4W1dbbwQKst0ZmZOkITJqYMpALukqHQ",
+  authDomain: "flexwork2026.firebaseapp.com",
+  projectId: "flexwork2026",
+  storageBucket: "flexwork2026.firebasestorage.app",
+  messagingSenderId: "618329184932",
+  appId: "1:618329184932:web:6da142379d38c89552a431"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const EMAILJS_SERVICE_ID = 'service_xxx';
+const EMAILJS_TEMPLATE_ID = 'template_xxx';
+const EMAILJS_PUBLIC_KEY = 'xxx';
+
+const PLAYERS = [
+  { name: 'Lutz',     pin: 'L11Sp' },
+  { name: 'Markus',   pin: 'Markus22' },
+  { name: 'Henrick',  pin: 'Klo33ss' },
+  { name: 'Thorsten', pin: '44Thor' },
+];
+const ADMIN_PIN = 'admin2026';
+
+// Fragen in questions.js
+
+// Zufaellige Auswahl: 2 leicht + 2 mittel + 2 schwer
+function getMonthQuestions() {
+  const seed = new Date().getFullYear() * 100 + (new Date().getMonth() + 1);
+  function seededRandom(s) {
+    let x = Math.sin(s) * 10000;
+    return x - Math.floor(x);
+  }
+  function shuffle(arr, seedOffset) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(seededRandom(seed + seedOffset + i) * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  const leicht = ALL_QUESTIONS.filter(q => q.difficulty === 'leicht');
+  const mittel = ALL_QUESTIONS.filter(q => q.difficulty === 'mittel');
+  const schwer = ALL_QUESTIONS.filter(q => q.difficulty === 'schwer');
+  return [
+    ...shuffle(leicht, 1).slice(0, 2),
+    ...shuffle(mittel, 2).slice(0, 2),
+    ...shuffle(schwer, 3).slice(0, 2),
+  ];
+}
+
+const MONTHLY_SETS_UNUSED = [
+  // 2x leicht, 2x mittel, 2x schwer = max 12 Punkte
+  [1,6,2,4,3,5],    // Jan
+  [10,13,7,9,8,11], // Feb
+  [16,13,12,15,14,18], // Mär
+  [6,10,17,19,20,3],   // Apr
+  [1,16,7,15,11,14],   // Mai
+  [6,13,2,9,8,18],     // Jun
+  [10,16,4,12,3,20],   // Jul
+  [1,13,17,19,5,14],   // Aug
+  [6,10,7,15,11,18],   // Sep
+  [16,13,2,4,8,3],     // Okt
+  [1,10,9,12,20,14],   // Nov
+  [6,13,17,15,5,11],   // Dez
+];
+
+let currentPlayer = null;
+let currentQuestionIdx = 0;
+let playerAnswers = [];
+let monthQuestions = [];
+let currentMonthKey = '';
+
+function getMonthKey() {
+  const now = new Date();
+  return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+}
+function getMonthLabel() {
+  return new Date().toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+}
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function doLogin() {
+  const name = document.getElementById('player-select').value;
+  const pin = document.getElementById('player-pin').value;
+  const err = document.getElementById('login-error');
+  if (!name) { err.textContent = 'Bitte Spieler waehlen.'; err.classList.add('show'); return; }
+  const player = PLAYERS.find(p => p.name === name && p.pin === pin);
+  if (!player) { err.classList.add('show'); return; }
+  err.classList.remove('show');
+  currentPlayer = player.name;
+  currentMonthKey = getMonthKey();
+  monthQuestions = getMonthQuestions();
+  db.collection('quiz').doc(currentMonthKey).collection('answers').doc(currentPlayer).get()
+    .then(doc => { if (doc.exists) showResultFromData(doc.data()); else startQuiz(); })
+    .catch(() => startQuiz());
+}
+function doLogout() {
+  currentPlayer = null; playerAnswers = []; currentQuestionIdx = 0;
+  document.getElementById('player-select').value = '';
+  document.getElementById('player-pin').value = '';
+  showView('view-login');
+}
+function startQuiz() {
+  playerAnswers = new Array(monthQuestions.length).fill(null);
+  currentQuestionIdx = 0;
+  document.getElementById('quiz-month-badge').textContent = '\u{1F4C5} ' + getMonthLabel();
+  showView('view-quiz');
+  renderQuestion();
+}
+function renderQuestion() {
+  const q = monthQuestions[currentQuestionIdx];
+  const total = monthQuestions.length;
+  document.getElementById('progress-text').textContent = 'Frage ' + (currentQuestionIdx+1) + ' von ' + total;
+  document.getElementById('progress-fill').style.width = ((currentQuestionIdx/total)*100) + '%';
+  document.getElementById('progress-score').textContent = '';
+  const badge = document.getElementById('difficulty-badge');
+  badge.textContent = q.difficulty.charAt(0).toUpperCase() + q.difficulty.slice(1);
+  badge.className = 'difficulty-badge diff-' + q.difficulty;
+  document.getElementById('question-text').textContent = q.text;
+  const container = document.getElementById('options-container');
+  container.innerHTML = '';
+  const letters = ['A','B','C','D'];
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn' + (playerAnswers[currentQuestionIdx] === i ? ' selected' : '');
+    btn.innerHTML = '<span class="option-letter">' + letters[i] + '</span><span>' + opt + '</span>';
+    btn.onclick = () => selectAnswer(i);
+    container.appendChild(btn);
+  });
+  document.getElementById('btn-prev').style.display = currentQuestionIdx > 0 ? 'flex' : 'none';
+  const btnNext = document.getElementById('btn-next');
+  btnNext.disabled = playerAnswers[currentQuestionIdx] === null;
+  btnNext.textContent = currentQuestionIdx === total-1 ? '📋 Zusammenfassung' : 'Weiter →';
+}
+function selectAnswer(idx) {
+  playerAnswers[currentQuestionIdx] = idx;
+  document.querySelectorAll('.option-btn').forEach((btn, i) => {
+    btn.classList.toggle('selected', i === idx);
+  });
+  document.getElementById('btn-next').disabled = false;
+}
+function nextQuestion() {
+  if (currentQuestionIdx < monthQuestions.length-1) { currentQuestionIdx++; renderQuestion(); }
+  else showSubmitView();
+}
+function prevQuestion() { if (currentQuestionIdx > 0) { currentQuestionIdx--; renderQuestion(); } }
+function goBackToQuiz() { currentQuestionIdx = monthQuestions.length-1; showView('view-quiz'); renderQuestion(); }
+function showSubmitView() {
+  const summary = document.getElementById('submit-summary');
+  summary.innerHTML = monthQuestions.map((q,i) => {
+    const ans = playerAnswers[i];
+    return '<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:13px;"><span>' + (ans!==null?'\u2705':'\u26A0\uFE0F') + '</span><span style="flex:1;color:var(--muted);">Frage '+(i+1)+'</span><span style="font-weight:600;">'+(ans!==null?q.options[ans]:'Nicht beantwortet')+'</span></div>';
+  }).join('');
+  showView('view-submit');
+}
+async function submitQuiz() {
+  const score = playerAnswers.filter((a,i) => a === monthQuestions[i].correct).length;
+  const points = playerAnswers.reduce((sum,a,i) => {
+    if (a !== monthQuestions[i].correct) return sum;
+    const d = monthQuestions[i].difficulty;
+    return sum + (d==='leicht'?1:d==='mittel'?2:3);
+  }, 0);
+  const data = { answers: playerAnswers, score, points, submittedAt: firebase.firestore.FieldValue.serverTimestamp(), questions: monthQuestions.map(q=>q.id) };
+  try {
+    await db.collection('quiz').doc(currentMonthKey).collection('answers').doc(currentPlayer).set(data);
+    showResultFromData(data);
+  } catch(e) { alert('Fehler: ' + e.message); }
+}
+function showResultFromData(data) {
+  const score = data.score;
+  const scoreStars = score >= 6 ? '⭐⭐⭐⭐⭐⭐' : score >= 5 ? '⭐⭐⭐⭐⭐' : score >= 4 ? '⭐⭐⭐⭐' : score >= 3 ? '⭐⭐⭐' : score >= 2 ? '⭐⭐' : '⭐';
+  const msgs = ['Weiter üben! 💪','Nicht schlecht!','Gut gemacht! 👍','Sehr gut! 🎉','Fast perfekt! 🎉','Ausgezeichnet! 🏆','Perfekt! 🏆'];
+  document.getElementById('result-stars').textContent = scoreStars;
+  document.getElementById('result-score').textContent = score;
+  document.getElementById('result-msg').textContent = msgs[score] || msgs[0];
+  const reveal = document.getElementById('result-reveal');
+
+  // Antworten nur anzeigen wenn Monat bereits aufgedeckt
+  db.collection('quiz').doc(currentMonthKey).get().then(monthDoc => {
+    const revealed = monthDoc.exists && monthDoc.data().revealed === true;
+    if (revealed) {
+      const qs = data.questions ? data.questions.map(id => ALL_QUESTIONS.find(q => q.id === id)) : monthQuestions;
+      reveal.innerHTML = '<div style="margin-top:16px;"><strong style="font-size:14px;">Deine Antworten:</strong></div>';
+      qs.forEach((q,i) => {
+        if (!q) return;
+        const myAns = data.answers[i];
+        const isCorrect = myAns === q.correct;
+        const div = document.createElement('div');
+        div.className = 'answer-card ' + (isCorrect ? 'correct-ans' : 'wrong-ans');
+        div.innerHTML = '<div class="q-text">'+(isCorrect?'✅':'❌')+' '+q.text+'</div>'
+          +'<div class="a-text">Deine Antwort: <strong>'+(myAns!==null?q.options[myAns]:'–')+'</strong></div>'
+          +(isCorrect?'':'<div class="a-text">Richtig: <strong>'+q.options[q.correct]+'</strong></div>')
+          +'<div class="rule">📖 '+q.ruleRef+'</div>';
+        reveal.appendChild(div);
+      });
+    } else {
+      reveal.innerHTML = '<div style="background:#fff3e0;border-radius:8px;padding:14px 16px;margin-top:16px;">'
+        +'<strong style="color:#E65100;">🔒 Auflösung folgt</strong><br>'
+        +'<span style="color:#666;font-size:13px;">Die richtigen Antworten werden am 1. des nächsten Monats angezeigt.</span></div>';
+    }
+  }).catch(() => {
+    reveal.innerHTML = '<div style="background:#fff3e0;border-radius:8px;padding:14px 16px;margin-top:16px;">'
+      +'<strong style="color:#E65100;">🔒 Auflösung folgt</strong><br>'
+      +'<span style="color:#666;font-size:13px;">Die richtigen Antworten werden am 1. des nächsten Monats angezeigt.</span></div>';
+  });
+  showView('view-result');
+}
+async function showLeaderboard() {
+  showView('view-leaderboard');
+  document.getElementById('lb-month-label').textContent = getMonthLabel();
+  await loadMonthlyLeaderboard();
+  await loadSeasonLeaderboard();
+}
+async function loadMonthlyLeaderboard() {
+  const snap = await db.collection('quiz').doc(currentMonthKey).collection('answers').get();
+  const results = [];
+  snap.forEach(doc => results.push({ player: doc.id, ...doc.data() }));
+  const tbody = document.getElementById('tbody-monthly');
+  tbody.innerHTML = '';
+  const medals = ['\u{1F947}','\u{1F948}','\u{1F949}','4.'];
+  results.sort((a,b) => (b.points||0)-(a.points||0)).forEach((r,i) => {
+    const tr = document.createElement('tr');
+    if (i<3) tr.className = 'rank-'+(i+1);
+    tr.innerHTML = '<td>'+medals[i]+'</td><td><strong>'+r.player+'</strong></td><td>'+r.score+'/6</td><td><strong>'+(r.points||r.score)+' Pkt.</strong></td>';
+    tbody.appendChild(tr);
+  });
+  const monthDoc = await db.collection('quiz').doc(currentMonthKey).get();
+  const revealed = monthDoc.exists && monthDoc.data().revealed;
+  document.getElementById('lb-not-revealed').style.display = revealed?'none':'block';
+  document.getElementById('lb-answers-reveal').style.display = revealed?'block':'none';
+  if (revealed) {
+    const qs = getMonthQuestions();
+    const container = document.getElementById('answers-reveal-content');
+    container.innerHTML = '';
+    qs.forEach(q => {
+      const div = document.createElement('div');
+      div.className = 'answer-card correct-ans';
+      div.innerHTML = '<div class="q-text">'+q.text+'</div><div class="a-text">\u2705 <strong>'+q.options[q.correct]+'</strong></div><div class="rule">\u{1F4D6} '+q.ruleRef+'</div>';
+      container.appendChild(div);
+    });
+  }
+}
+async function loadSeasonLeaderboard() {
+  const year = new Date().getFullYear();
+  const months = Array.from({length:12},(_,i) => year+'-'+String(i+1).padStart(2,'0'));
+  const totals = {};
+  PLAYERS.forEach(p => { totals[p.name] = { points:0, months:0 }; });
+  await Promise.all(months.map(async mk => {
+    try {
+      const snap = await db.collection('quiz').doc(mk).collection('answers').get();
+      snap.forEach(doc => { if (totals[doc.id]) { totals[doc.id].points += doc.data().points||doc.data().score||0; totals[doc.id].months++; } });
+    } catch(e) {}
+  }));
+  const tbody = document.getElementById('tbody-season');
+  tbody.innerHTML = '';
+  const medals = ['\u{1F947}','\u{1F948}','\u{1F949}','4.'];
+  Object.entries(totals).sort((a,b) => b[1].points-a[1].points).forEach(([name,d],i) => {
+    const tr = document.createElement('tr');
+    if (i<3) tr.className = 'rank-'+(i+1);
+    tr.innerHTML = '<td>'+medals[i]+'</td><td><strong>'+name+'</strong></td><td>'+d.months+'</td><td><strong>'+d.points+'</strong></td><td>'+(d.months>0?(d.points/d.months).toFixed(1):'--')+'</td>';
+    tbody.appendChild(tr);
+  });
+}
+function showLbTab(tab) {
+  document.getElementById('lb-monthly').style.display = tab==='monthly'?'block':'none';
+  document.getElementById('lb-season').style.display = tab==='season'?'block':'none';
+  document.querySelectorAll('.quiz-tab').forEach((t,i) => t.classList.toggle('active',(i===0&&tab==='monthly')||(i===1&&tab==='season')));
+}
+function showAdmin() { showView('view-admin'); }
+function doAdminLogin() {
+  const pin = document.getElementById('admin-pin-input').value;
+  if (pin !== ADMIN_PIN) { document.getElementById('admin-error').classList.add('show'); return; }
+  document.getElementById('admin-error').classList.remove('show');
+  document.getElementById('admin-login-section').style.display = 'none';
+  document.getElementById('admin-content').style.display = 'block';
+  document.getElementById('admin-month-info').textContent = 'Aktueller Monat: ' + getMonthLabel() + ' (' + getMonthKey() + ')';
+  loadAdminEmails();
+}
+async function loadAdminEmails() {
+  try {
+    const doc = await db.collection('quiz').doc('admin').get();
+    if (doc.exists && doc.data().emails) {
+      const emails = doc.data().emails;
+      PLAYERS.forEach(p => { const el = document.getElementById('email-'+p.name); if (el && emails[p.name]) el.value = emails[p.name]; });
+    }
+  } catch(e) {}
+}
+async function saveEmails() {
+  const emails = {};
+  PLAYERS.forEach(p => { const el = document.getElementById('email-'+p.name); if (el) emails[p.name] = el.value; });
+  await db.collection('quiz').doc('admin').set({ emails }, { merge: true });
+  alert('E-Mail-Adressen gespeichert');
+}
+async function revealAnswers() {
+  if (!confirm('Antworten fuer ' + getMonthLabel() + ' jetzt aufdecken?')) return;
+  await db.collection('quiz').doc(currentMonthKey).set({ revealed: true }, { merge: true });
+  alert('Antworten aufgedeckt ✓');
+}
+
+async function showVerification() {
+  const panel = document.getElementById('verification-panel');
+  if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+  const qs = getMonthQuestions();
+  let html = '<div style="font-size:14px;"><strong>Fragen & Antworten für ' + getMonthLabel() + ':</strong><br><br>';
+  qs.forEach((q, i) => {
+    const diffLabel = q.difficulty === 'leicht' ? '1 Pkt' : q.difficulty === 'mittel' ? '2 Pkt' : '3 Pkt';
+    html += '<div style="margin-bottom:12px;padding:10px;background:#f9f9f9;border-radius:8px;border-left:3px solid #CC0000;">';
+    html += '<strong>F' + (i+1) + ' [' + q.difficulty + ', ' + diffLabel + ']:</strong> ' + q.text + '<br>';
+    q.options.forEach((opt, j) => {
+      const isCorrect = j === q.correct;
+      html += '<div style="color:' + (isCorrect ? '#2E7D32' : '#666') + ';font-weight:' + (isCorrect ? '700' : '400') + ';padding:2px 0;">'
+        + (isCorrect ? '✅ ' : '&nbsp;&nbsp;&nbsp;') + String.fromCharCode(65+j) + ') ' + opt + '</div>';
+    });
+    html += '<small style="color:#999;">📖 ' + q.ruleRef + '</small>';
+    html += '</div>';
+  });
+  html += '</div>';
+  panel.innerHTML = html;
+  panel.style.display = 'block';
+}
+async function confirmSeasonReset() {
+  if (!confirm('ACHTUNG: Alle Quiz-Punkte werden geloescht. Fortfahren?')) return;
+  if (!confirm('Wirklich sicher?')) return;
+  const year = new Date().getFullYear();
+  const months = Array.from({length:12},(_,i) => year+'-'+String(i+1).padStart(2,'0'));
+  for (const mk of months) {
+    try {
+      const snap = await db.collection('quiz').doc(mk).collection('answers').get();
+      const batch = db.batch();
+      snap.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      await db.collection('quiz').doc(mk).delete();
+    } catch(e) {}
+  }
+  alert('Saison zurueckgesetzt');
+}
+async function sendReminders() {
+  if (EMAILJS_SERVICE_ID === 'service_xxx') { alert('EmailJS ist noch nicht eingerichtet.'); return; }
+  const doc = await db.collection('quiz').doc('admin').get();
+  const emails = doc.exists ? (doc.data().emails||{}) : {};
+  const snap = await db.collection('quiz').doc(currentMonthKey).collection('answers').get();
+  const answered = new Set();
+  snap.forEach(d => answered.add(d.id));
+  let sent = 0;
+  for (const p of PLAYERS) {
+    if (!answered.has(p.name) && emails[p.name]) {
+      try {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { to_email: emails[p.name], to_name: p.name, month: getMonthLabel(), quiz_url: window.location.href }, EMAILJS_PUBLIC_KEY);
+        sent++;
+      } catch(e) {}
+    }
+  }
+  alert(sent + ' Erinnerungsmail(s) gesendet.');
+}
+document.getElementById('player-pin').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+document.getElementById('admin-pin-input').addEventListener('keydown', e => { if (e.key==='Enter') doAdminLogin(); });
+</script>
+</body>
+</html>
