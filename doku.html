@@ -179,7 +179,7 @@
           <tr><td>Hosting</td><td><span class="badge badge-green">GitHub Pages</span></td><td>Automatisches Deployment bei Push auf main</td></tr>
           <tr><td>Charts</td><td><span class="badge badge-blue">Chart.js 4.4</span></td><td>CDN via jsdelivr.net</td></tr>
           <tr><td>Fonts</td><td><span class="badge badge-blue">Inter</span></td><td>Google Fonts</td></tr>
-          <tr><td>PWA</td><td><span class="badge badge-green">Service Worker</span></td><td>Cache-First Strategie, Version mfw2026-v12</td></tr>
+          <tr><td>PWA</td><td><span class="badge badge-green">Service Worker</span></td><td>Cache-First Strategie, Version mfw2026-v16</td></tr>
         </tbody>
       </table>
     </div>
@@ -293,6 +293,7 @@ git add .
 git commit -m "v3.x: Beschreibung der Änderungen"
 git push</code></pre>
     <p>Nach dem Push: Hard Refresh im Browser (<code>Cmd+Shift+R</code>) damit der Service Worker die neue Version lädt.</p>
+    <div class="info-box"><strong>iOS / PWA Cache leeren:</strong> Falls auf dem iPhone eine veraltete Version angezeigt wird, die PWA vom Homescreen löschen und in Safari neu aufrufen. „Verlauf und Cache löschen" in Safari reicht nicht – der Service Worker Cache wird dabei nicht geleert.</div>
 
     <!-- SPIELREGELN -->
     <h2 id="game-rules">📋 Spielregeln</h2>
@@ -316,20 +317,22 @@ Gesamt Brutto = Quali Brutto gewertet + (Endrunde Brutto × 2)</code></pre>
     <!-- SPIELER -->
     <h2 id="players">👥 Spieler</h2>
     <table>
-      <thead><tr><th>Index</th><th>Name</th><th>Farbe</th></tr></thead>
+      <thead><tr><th>Index</th><th>Name</th><th>Farbe</th><th>Quiz-PIN</th></tr></thead>
       <tbody>
-        <tr><td>0</td><td>Lutz</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#CC0000;vertical-align:middle;margin-right:6px;"></span>#CC0000</td></tr>
-        <tr><td>1</td><td>Markus</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#1565C0;vertical-align:middle;margin-right:6px;"></span>#1565C0</td></tr>
-        <tr><td>2</td><td>Henrick</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#2E7D32;vertical-align:middle;margin-right:6px;"></span>#2E7D32</td></tr>
-        <tr><td>3</td><td>Thorsten</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#F57F17;vertical-align:middle;margin-right:6px;"></span>#F57F17</td></tr>
+        <tr><td>0</td><td>Lutz</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#CC0000;vertical-align:middle;margin-right:6px;"></span>#CC0000</td><td><code>L11Sp</code></td></tr>
+        <tr><td>1</td><td>Markus</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#1565C0;vertical-align:middle;margin-right:6px;"></span>#1565C0</td><td><code>MBak22</code></td></tr>
+        <tr><td>2</td><td>Henrick</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#2E7D32;vertical-align:middle;margin-right:6px;"></span>#2E7D32</td><td><code>33HKlo</code></td></tr>
+        <tr><td>3</td><td>Thorsten</td><td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#F57F17;vertical-align:middle;margin-right:6px;"></span>#F57F17</td><td><code>44Thor</code></td></tr>
       </tbody>
     </table>
+    <div class="info-box"><strong>Admin-PIN:</strong> <code>admin2026</code> &nbsp;·&nbsp; Quiz-PINs sind max. 6 Zeichen, autocapitalize auf iOS deaktiviert.</div>
 
     <!-- CHANGELOG -->
     <h2 id="changelog">📝 Changelog</h2>
     <table>
       <thead><tr><th>Version</th><th>Datum</th><th>Änderungen</th></tr></thead>
       <tbody>
+        <tr><td><span class="badge badge-red">v3.6</span></td><td>Mai 2026</td><td>Regelquiz: iOS autocapitalize-Fix, neue Quiz-PINs (Markus/Henrick), SW Cache v16</td></tr>
         <tr><td><span class="badge badge-red">v3.5</span></td><td>Apr 2026</td><td>Statistik-Tab: Hall of Fame, Spieler-Profile, Direktvergleich, Platzkönige</td></tr>
         <tr><td><span class="badge badge-red">v3.4</span></td><td>Apr 2026</td><td>Saison 2023 + 2022 hinzugefügt, Seed-Scripts</td></tr>
         <tr><td><span class="badge badge-red">v3.3</span></td><td>Apr 2026</td><td>Saison 2024 hinzugefügt</td></tr>

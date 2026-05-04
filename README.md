@@ -187,6 +187,8 @@ git commit -m "v3.x: Beschreibung"
 git push
 ```
 
+> **iOS / PWA Cache leeren:** Falls auf dem iPhone eine veraltete Version angezeigt wird, die PWA vom Homescreen löschen und in Safari neu aufrufen. „Verlauf und Cache löschen" in Safari reicht nicht – der Service Worker Cache wird dabei nicht geleert.
+
 ---
 
 ## 🎮 Spielregeln (implementiert)
@@ -222,14 +224,17 @@ Gesamt Brutto = Quali Brutto gewertet + (Endrunde Brutto × 2)
 | v3.3 | Saison 2024 + Seed-Script |
 | v3.4 | Saison 2023 + 2022 + Seed-Scripts |
 | v3.5 | Statistik-Tab: Hall of Fame, Spieler-Profile, Direktvergleich, Platzkönige |
+| v3.6 | Regelquiz: iOS autocapitalize-Fix, neue Quiz-PINs (Markus/Henrick), SW Cache v16 |
 
 ---
 
 ## 👥 Spieler
 
-| Index | Name |
-|-------|------|
-| 0 | Lutz |
-| 1 | Markus |
-| 2 | Henrick |
-| 3 | Thorsten |
+| Index | Name | Quiz-PIN |
+|-------|------|----------|
+| 0 | Lutz | `L11Sp` |
+| 1 | Markus | `MBak22` |
+| 2 | Henrick | `33HKlo` |
+| 3 | Thorsten | `44Thor` |
+
+**Admin-PIN:** `admin2026`
