@@ -200,7 +200,16 @@
     </div>
   </div>
 
-  <!-- QUIZ VIEW -->
+  <!-- WELCOME VIEW (before quiz, shows prev month option) -->
+  <div class="view" id="view-welcome">
+    <div class="card">
+      <div class="card-title">🏌️ Willkommen, <span id="welcome-name"></span>!</div>
+      <div class="month-badge" id="welcome-month-badge"></div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:20px;">Das Quiz für diesen Monat steht bereit – 6 neue Fragen warten auf dich.</p>
+      <button class="btn btn-primary" onclick="startQuiz()">▶️ Quiz starten</button>
+      <button class="btn btn-secondary" style="margin-top:10px;display:none;" id="btn-welcome-prev" onclick="showPrevMonthResult()">📅 Vormonat ansehen</button>
+    </div>
+  </div>
   <div class="view" id="view-quiz">
     <div class="card">
       <div id="quiz-month-badge" class="month-badge"></div>
@@ -251,7 +260,7 @@
     <div class="card">
       <div class="card-title" id="prev-month-title">📅 Ergebnis Vormonat</div>
       <div id="prev-month-content"></div>
-      <button class="btn btn-secondary" style="margin-top:16px;" onclick="showView('view-result')">← Zurück</button>
+      <button class="btn btn-secondary" style="margin-top:16px;" onclick="goBackFromPrevMonth()">← Zurück</button>
     </div>
   </div>
 
@@ -449,8 +458,24 @@ function doLogin() {
   currentMonthKey = getMonthKey();
   monthQuestions = getMonthQuestions();
   db.collection('quiz').doc(currentMonthKey).collection('answers').doc(currentPlayer).get()
-    .then(doc => { if (doc.exists) showResultFromData(doc.data()); else startQuiz(); })
-    .catch(() => startQuiz());
+    .then(doc => { if (doc.exists) showResultFromData(doc.data()); else showWelcome(); })
+    .catch(() => showWelcome());
+}
+async function showWelcome() {
+  document.getElementById('welcome-name').textContent = currentPlayer;
+  document.getElementById('welcome-month-badge').textContent = '📅 ' + getMonthLabel();
+  // Vormonat-Button anzeigen wenn aufgedeckt
+  const prevMk = getPrevMonthKey();
+  const btnPrev = document.getElementById('btn-welcome-prev');
+  btnPrev.style.display = 'none';
+  try {
+    const prevDoc = await db.collection('quiz').doc(prevMk).get();
+    if (prevDoc.exists && prevDoc.data().revealed === true) {
+      btnPrev.style.display = 'block';
+      btnPrev.textContent = '📅 ' + getPrevMonthLabel() + ' – Auflösung ansehen';
+    }
+  } catch(e) {}
+  showView('view-welcome');
 }
 function doLogout() {
   currentPlayer = null; playerAnswers = []; currentQuestionIdx = 0;
@@ -616,6 +641,13 @@ async function showPrevMonthResult() {
   } catch(e) {
     content.innerHTML = '<p style="color:var(--red);">Fehler: '+e.message+'</p>';
   }
+}
+
+function goBackFromPrevMonth() {
+  // Prüfen ob der Spieler das aktuelle Quiz schon gespielt hat
+  db.collection('quiz').doc(currentMonthKey).collection('answers').doc(currentPlayer).get()
+    .then(doc => { if (doc.exists) showView('view-result'); else showView('view-welcome'); })
+    .catch(() => showView('view-welcome'));
 }
 async function showLeaderboard() {
   showView('view-leaderboard');
