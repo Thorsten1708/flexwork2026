@@ -241,7 +241,17 @@
       </div>
       <div id="result-reveal"></div>
       <button class="btn btn-primary" style="margin-top:16px;" onclick="showLeaderboard()">🏆 Rangliste ansehen</button>
+      <button class="btn btn-secondary" style="margin-top:10px;display:none;" id="btn-prev-month" onclick="showPrevMonthResult()">📅 Vormonat ansehen</button>
       <button class="btn btn-secondary" style="margin-top:10px;" onclick="doLogout()">← Abmelden</button>
+    </div>
+  </div>
+
+  <!-- PREV MONTH RESULT VIEW -->
+  <div class="view" id="view-prev-month">
+    <div class="card">
+      <div class="card-title" id="prev-month-title">📅 Ergebnis Vormonat</div>
+      <div id="prev-month-content"></div>
+      <button class="btn btn-secondary" style="margin-top:16px;" onclick="showView('view-result')">← Zurück</button>
     </div>
   </div>
 
@@ -387,28 +397,10 @@ const ADMIN_PIN = 'admin2026';
 // Fragen in questions.js
 
 // Zufaellige Auswahl: 2 leicht + 2 mittel + 2 schwer
+// Garantiert keine Überschneidung mit dem Vormonat
 function getMonthQuestions() {
-  const seed = new Date().getFullYear() * 100 + (new Date().getMonth() + 1);
-  function seededRandom(s) {
-    let x = Math.sin(s) * 10000;
-    return x - Math.floor(x);
-  }
-  function shuffle(arr, seedOffset) {
-    const a = [...arr];
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(seededRandom(seed + seedOffset + i) * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
-  const leicht = ALL_QUESTIONS.filter(q => q.difficulty === 'leicht');
-  const mittel = ALL_QUESTIONS.filter(q => q.difficulty === 'mittel');
-  const schwer = ALL_QUESTIONS.filter(q => q.difficulty === 'schwer');
-  return [
-    ...shuffle(leicht, 1).slice(0, 2),
-    ...shuffle(mittel, 2).slice(0, 2),
-    ...shuffle(schwer, 3).slice(0, 2),
-  ];
+  const mk = getMonthKey();
+  return getMonthQuestionsForKey(mk);
 }
 
 const MONTHLY_SETS_UNUSED = [
@@ -569,7 +561,61 @@ function showResultFromData(data) {
       +'<strong style="color:#E65100;">🔒 Auflösung folgt</strong><br>'
       +'<span style="color:#666;font-size:13px;">Die richtigen Antworten werden am 1. des nächsten Monats angezeigt.</span></div>';
   });
+
+  // Vormonat-Button anzeigen wenn Vormonat aufgedeckt wurde
+  const prevMk = getPrevMonthKey();
+  const btnPrev = document.getElementById('btn-prev-month');
+  btnPrev.style.display = 'none';
+  db.collection('quiz').doc(prevMk).get().then(prevDoc => {
+    if (prevDoc.exists && prevDoc.data().revealed === true) {
+      btnPrev.style.display = 'block';
+      btnPrev.textContent = '📅 ' + getPrevMonthLabel() + ' ansehen';
+    }
+  }).catch(() => {});
+
   showView('view-result');
+}
+
+async function showPrevMonthResult() {
+  const prevMk = getPrevMonthKey();
+  const prevLabel = getPrevMonthLabel();
+  document.getElementById('prev-month-title').textContent = '📅 Ergebnis ' + prevLabel;
+  const content = document.getElementById('prev-month-content');
+  content.innerHTML = '<p style="color:var(--muted);">Lade...</p>';
+  showView('view-prev-month');
+
+  try {
+    // Spieler-Antworten des Vormonats laden
+    const ansDoc = await db.collection('quiz').doc(prevMk).collection('answers').doc(currentPlayer).get();
+    const prevQuestions = getMonthQuestionsForKey(prevMk);
+
+    if (!ansDoc.exists) {
+      content.innerHTML = '<p style="color:var(--muted);">Du hast im ' + prevLabel + ' nicht teilgenommen.</p>'
+        + '<div style="margin-top:16px;"><strong style="font-size:14px;">Richtige Antworten:</strong></div>'
+        + prevQuestions.map(q => '<div class="answer-card correct-ans"><div class="q-text">'+q.text+'</div><div class="a-text">✅ <strong>'+q.options[q.correct]+'</strong></div><div class="rule">📖 '+q.ruleRef+'</div></div>').join('');
+      return;
+    }
+
+    const data = ansDoc.data();
+    const score = data.score;
+    const qs = data.questions ? data.questions.map(id => ALL_QUESTIONS.find(q => q.id === id)) : prevQuestions;
+
+    let html = '<div class="score-display" style="margin-bottom:16px;"><div class="score-number" style="font-size:48px;">'+score+'</div><div class="score-label">von 6 Fragen richtig</div></div>';
+    html += '<div><strong style="font-size:14px;">Deine Antworten:</strong></div>';
+    qs.forEach((q,i) => {
+      if (!q) return;
+      const myAns = data.answers[i];
+      const isCorrect = myAns === q.correct;
+      html += '<div class="answer-card '+(isCorrect?'correct-ans':'wrong-ans')+'">'
+        +'<div class="q-text">'+(isCorrect?'✅':'❌')+' '+q.text+'</div>'
+        +'<div class="a-text">Deine Antwort: <strong>'+(myAns!==null?q.options[myAns]:'–')+'</strong></div>'
+        +(isCorrect?'':'<div class="a-text">Richtig: <strong>'+q.options[q.correct]+'</strong></div>')
+        +'<div class="rule">📖 '+q.ruleRef+'</div></div>';
+    });
+    content.innerHTML = html;
+  } catch(e) {
+    content.innerHTML = '<p style="color:var(--red);">Fehler: '+e.message+'</p>';
+  }
 }
 async function showLeaderboard() {
   showView('view-leaderboard');
@@ -648,11 +694,11 @@ function getMonthQuestionsForKey(monthKey) {
   const year = parseInt(parts[0]);
   const month = parseInt(parts[1]);
   const seed = year * 100 + month;
-  function seededRandom(s) { let x = Math.sin(s) * 10000; return x - Math.floor(x); }
-  function shuffle(arr, seedOffset) {
+  function seededRandom(s) { let x = Math.sin(s * 9301 + 49297) % 233280; x = (x < 0 ? x + 233280 : x) / 233280; return x; }
+  function shuffle(arr, seedVal) {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(seededRandom(seed + seedOffset + i) * (i + 1));
+      const j = Math.floor(seededRandom(seedVal + i * 7 + 13) * (i + 1));
       [a[i], a[j]] = [a[j], a[i]];
     }
     return a;
@@ -660,11 +706,20 @@ function getMonthQuestionsForKey(monthKey) {
   const leicht = ALL_QUESTIONS.filter(q => q.difficulty === 'leicht');
   const mittel = ALL_QUESTIONS.filter(q => q.difficulty === 'mittel');
   const schwer = ALL_QUESTIONS.filter(q => q.difficulty === 'schwer');
-  return [
-    ...shuffle(leicht, 1).slice(0, 2),
-    ...shuffle(mittel, 2).slice(0, 2),
-    ...shuffle(schwer, 3).slice(0, 2),
-  ];
+
+  // Vormonat-Fragen ermitteln um Überschneidungen zu vermeiden
+  const prevSeed = month === 1 ? (year - 1) * 100 + 12 : year * 100 + (month - 1);
+  const prevLeicht = shuffle(leicht, prevSeed * 3 + 1).slice(0, 2).map(q => q.id);
+  const prevMittel = shuffle(mittel, prevSeed * 3 + 2).slice(0, 2).map(q => q.id);
+  const prevSchwer = shuffle(schwer, prevSeed * 3 + 3).slice(0, 2).map(q => q.id);
+  const prevIds = new Set([...prevLeicht, ...prevMittel, ...prevSchwer]);
+
+  // Aktuellen Monat shufflen und Vormonat-Fragen ausschließen
+  const curLeicht = shuffle(leicht, seed * 3 + 1).filter(q => !prevIds.has(q.id)).slice(0, 2);
+  const curMittel = shuffle(mittel, seed * 3 + 2).filter(q => !prevIds.has(q.id)).slice(0, 2);
+  const curSchwer = shuffle(schwer, seed * 3 + 3).filter(q => !prevIds.has(q.id)).slice(0, 2);
+
+  return [...curLeicht, ...curMittel, ...curSchwer];
 }
 function getSelectedAdminMonthKey() {
   return document.getElementById('admin-month-select').value;
