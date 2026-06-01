@@ -546,7 +546,7 @@ function showResultFromData(data) {
         const div = document.createElement('div');
         div.className = 'answer-card ' + (isCorrect ? 'correct-ans' : 'wrong-ans');
         div.innerHTML = '<div class="q-text">'+(isCorrect?'✅':'❌')+' '+q.text+'</div>'
-          +'<div class="a-text">Deine Antwort: <strong>'+(myAns!==null?q.options[myAns]:'–')+'</strong></div>'
+          +'<div class="a-text">Deine Antwort: <strong>'+(myAns!==null?q.options[myAns]:'–')+'</strong>'+(isCorrect?' — ✅ Richtig!':'')+'</div>'
           +(isCorrect?'':'<div class="a-text">Richtig: <strong>'+q.options[q.correct]+'</strong></div>')
           +'<div class="rule">📖 '+q.ruleRef+'</div>';
         reveal.appendChild(div);
@@ -608,7 +608,7 @@ async function showPrevMonthResult() {
       const isCorrect = myAns === q.correct;
       html += '<div class="answer-card '+(isCorrect?'correct-ans':'wrong-ans')+'">'
         +'<div class="q-text">'+(isCorrect?'✅':'❌')+' '+q.text+'</div>'
-        +'<div class="a-text">Deine Antwort: <strong>'+(myAns!==null?q.options[myAns]:'–')+'</strong></div>'
+        +'<div class="a-text">Deine Antwort: <strong>'+(myAns!==null?q.options[myAns]:'–')+'</strong>'+(isCorrect?' — ✅ Richtig!':'')+'</div>'
         +(isCorrect?'':'<div class="a-text">Richtig: <strong>'+q.options[q.correct]+'</strong></div>')
         +'<div class="rule">📖 '+q.ruleRef+'</div></div>';
     });
