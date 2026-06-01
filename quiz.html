@@ -319,7 +319,11 @@
         </div>
 
         <div class="admin-section">
-          <h3>📅 Aktueller Monat</h3>
+          <h3>📅 Auswertung & Aufdecken</h3>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Monat auswählen</label>
+            <select id="admin-month-select" onchange="updateAdminMonthInfo()" style="width:auto;min-width:200px;"></select>
+          </div>
           <div id="admin-month-info" style="font-size:14px;color:var(--muted);margin-bottom:12px;"></div>
           <button class="btn btn-secondary btn-sm" onclick="showVerification()" style="margin-bottom:8px;">🔍 Fragen & Antworten prüfen</button>
           <button class="btn btn-secondary btn-sm" onclick="revealAnswers()">🔓 Antworten aufdecken & Auswertung freigeben</button>
@@ -629,13 +633,67 @@ function showLbTab(tab) {
   document.querySelectorAll('.quiz-tab').forEach((t,i) => t.classList.toggle('active',(i===0&&tab==='monthly')||(i===1&&tab==='season')));
 }
 function showAdmin() { showView('view-admin'); }
+function getPrevMonthKey() {
+  const now = new Date();
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return prev.getFullYear() + '-' + String(prev.getMonth()+1).padStart(2,'0');
+}
+function getPrevMonthLabel() {
+  const now = new Date();
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return prev.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+}
+function getMonthQuestionsForKey(monthKey) {
+  const parts = monthKey.split('-');
+  const year = parseInt(parts[0]);
+  const month = parseInt(parts[1]);
+  const seed = year * 100 + month;
+  function seededRandom(s) { let x = Math.sin(s) * 10000; return x - Math.floor(x); }
+  function shuffle(arr, seedOffset) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(seededRandom(seed + seedOffset + i) * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  const leicht = ALL_QUESTIONS.filter(q => q.difficulty === 'leicht');
+  const mittel = ALL_QUESTIONS.filter(q => q.difficulty === 'mittel');
+  const schwer = ALL_QUESTIONS.filter(q => q.difficulty === 'schwer');
+  return [
+    ...shuffle(leicht, 1).slice(0, 2),
+    ...shuffle(mittel, 2).slice(0, 2),
+    ...shuffle(schwer, 3).slice(0, 2),
+  ];
+}
+function getSelectedAdminMonthKey() {
+  return document.getElementById('admin-month-select').value;
+}
+function getSelectedAdminMonthLabel() {
+  const sel = document.getElementById('admin-month-select');
+  return sel.options[sel.selectedIndex].text;
+}
+function updateAdminMonthInfo() {
+  const mk = getSelectedAdminMonthKey();
+  document.getElementById('admin-month-info').textContent = 'Gewählt: ' + getSelectedAdminMonthLabel() + ' (' + mk + ')';
+  document.getElementById('verification-panel').style.display = 'none';
+}
 function doAdminLogin() {
   const pin = document.getElementById('admin-pin-input').value;
   if (pin !== ADMIN_PIN) { document.getElementById('admin-error').classList.add('show'); return; }
   document.getElementById('admin-error').classList.remove('show');
   document.getElementById('admin-login-section').style.display = 'none';
   document.getElementById('admin-content').style.display = 'block';
-  document.getElementById('admin-month-info').textContent = 'Aktueller Monat: ' + getMonthLabel() + ' (' + getMonthKey() + ')';
+  // Monatswähler befüllen: Vormonat (default) + aktueller Monat
+  const sel = document.getElementById('admin-month-select');
+  sel.innerHTML = '';
+  const prevKey = getPrevMonthKey();
+  const prevLabel = getPrevMonthLabel();
+  const curKey = getMonthKey();
+  const curLabel = getMonthLabel();
+  sel.innerHTML = '<option value="'+prevKey+'">'+prevLabel+' (Vormonat)</option>'
+    + '<option value="'+curKey+'">'+curLabel+' (aktuell)</option>';
+  updateAdminMonthInfo();
   loadAdminEmails();
 }
 async function loadAdminEmails() {
@@ -654,16 +712,20 @@ async function saveEmails() {
   alert('E-Mail-Adressen gespeichert');
 }
 async function revealAnswers() {
-  if (!confirm('Antworten fuer ' + getMonthLabel() + ' jetzt aufdecken?')) return;
-  await db.collection('quiz').doc(currentMonthKey).set({ revealed: true }, { merge: true });
-  alert('Antworten aufgedeckt ✓');
+  const mk = getSelectedAdminMonthKey();
+  const ml = getSelectedAdminMonthLabel();
+  if (!confirm('Antworten fuer ' + ml + ' (' + mk + ') jetzt aufdecken?')) return;
+  await db.collection('quiz').doc(mk).set({ revealed: true }, { merge: true });
+  alert('Antworten für ' + ml + ' aufgedeckt ✓');
 }
 
 async function showVerification() {
   const panel = document.getElementById('verification-panel');
   if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
-  const qs = getMonthQuestions();
-  let html = '<div style="font-size:14px;"><strong>Fragen & Antworten für ' + getMonthLabel() + ':</strong><br><br>';
+  const mk = getSelectedAdminMonthKey();
+  const ml = getSelectedAdminMonthLabel();
+  const qs = getMonthQuestionsForKey(mk);
+  let html = '<div style="font-size:14px;"><strong>Fragen & Antworten für ' + ml + ':</strong><br><br>';
   qs.forEach((q, i) => {
     const diffLabel = q.difficulty === 'leicht' ? '1 Pkt' : q.difficulty === 'mittel' ? '2 Pkt' : '3 Pkt';
     html += '<div style="margin-bottom:12px;padding:10px;background:#f9f9f9;border-radius:8px;border-left:3px solid #CC0000;">';
