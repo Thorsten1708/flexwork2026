@@ -2067,11 +2067,12 @@ function renderQualiRounds() {
                 });
               }
               renderQualiRounds();
-              renderResults();
+              recalcAndRender();
             }
           });
         }
-    }
+      } // end else (not fixed)
+    } // end if (!activeInHeader)
 
     // Tbody aktualisieren
     const tbody = document.getElementById(`quali-tbody-${ri}`);
