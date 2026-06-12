@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Fix Rosenhof – Firestore Update</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<style>
+  body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+  button { font-size: 16px; padding: 12px 24px; background: #CC0000; color: white; border: none; border-radius: 8px; cursor: pointer; }
+  button:hover { background: #990000; }
+  pre { background: #f5f5f5; padding: 16px; border-radius: 8px; font-size: 13px; margin-top: 20px; white-space: pre-wrap; }
+  .ok { color: green; font-weight: bold; }
+  .err { color: red; font-weight: bold; }
+</style>
+</head>
+<body>
+<h2>🔧 Rosenhof in Firestore fixieren</h2>
+<p>Dieses Script liest die aktuellen Saison-2026-Daten aus Firestore, setzt Runde 4 (Rosenhof) auf <code>fixed: true</code> und speichert zurück.</p>
+<button onclick="fixRosenhof()">▶ Jetzt ausführen</button>
+<pre id="log">Bereit...</pre>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAq4W1dbbwQKst0ZmZOkITJqYMpALukqHQ",
+  authDomain: "flexwork2026.firebaseapp.com",
+  projectId: "flexwork2026",
+  storageBucket: "flexwork2026.firebasestorage.app",
+  messagingSenderId: "618329184932",
+  appId: "1:618329184932:web:6da142379d38c89552a431"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function log(msg, cls) {
+  const pre = document.getElementById('log');
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  line.textContent = msg;
+  pre.appendChild(line);
+}
+
+async function fixRosenhof() {
+  document.getElementById('log').innerHTML = '';
+  log('🔄 Lese aktuelle Daten aus Firestore...');
+  try {
+    const docRef = db.collection('tournaments').doc('mfw2026');
+    const doc = await docRef.get();
+    if (!doc.exists) {
+      log('❌ Dokument mfw2026 nicht gefunden!', 'err');
+      return;
+    }
+    const data = doc.data();
+    log(`✅ Daten geladen: ${data.qualiRounds.length} Qualirunden`);
+
+    // Rosenhof-Runde finden
+    let found = false;
+    data.qualiRounds.forEach((r, i) => {
+      log(`  Runde ${i+1}: "${r.name}" – fixed: ${r.fixed} – netto: [${r.netto}]`);
+      if (r.name && r.name.toLowerCase().includes('rosenhof')) {
+        log(`  → Setze Runde ${i+1} auf fixed: true, date: 12.06.26`);
+        data.qualiRounds[i].fixed = true;
+        data.qualiRounds[i].date = '12.06.26';
+        found = true;
+      }
+    });
+
+    if (!found) {
+      log('⚠️ Keine Runde mit "Rosenhof" gefunden. Prüfe ob der Name stimmt.', 'err');
+      return;
+    }
+
+    log('💾 Speichere aktualisierte Daten...');
+    await docRef.set(data);
+    log('✅ Fertig! Rosenhof ist jetzt fixed:true in Firestore.', 'ok');
+    log('→ App neu laden um die Änderung zu sehen.');
+  } catch(e) {
+    log('❌ Fehler: ' + e.message, 'err');
+  }
+}
+</script>
+</body>
+</html>
