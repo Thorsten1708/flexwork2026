@@ -102,6 +102,13 @@
   }
   .card-header input[type=text]::placeholder { color: rgba(255,255,255,0.6); }
   .card-header input[type=text]:focus { background: rgba(255,255,255,0.3); }
+  .fix-round-btn {
+    background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.6);
+    color: white; border-radius: 6px; padding: 3px 10px; font-size: 12px;
+    font-weight: 700; font-family: inherit; cursor: pointer; white-space: nowrap;
+    flex-shrink: 0; margin-left: 6px; transition: background 0.15s;
+  }
+  .fix-round-btn:hover { background: rgba(255,255,255,0.4); }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   .col-spieler { width: 50%; text-align: left; }
   .col-score { width: 25%; text-align: center; }
@@ -881,7 +888,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '5.1';
+const APP_VERSION = '5.2';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -2018,10 +2025,13 @@ function renderQualiRounds() {
       } else {
         const nameVal = round.name === 'tbd' ? '' : round.name;
         const dateVal = round.date === 'tt.mm.26' ? '' : round.date;
+        const hasData = isRoundPlayed(round);
+        const fixBtn = (isUnlocked && hasData) ? `<button class="fix-round-btn" data-qi="${ri}" title="Runde fixieren">✅ Fixieren</button>` : '';
         header.innerHTML = `
           <span class="round-name">${ri+1}.</span>
           <input type="text" placeholder="Platzname" value="${nameVal}" data-qi="${ri}" data-field="name" style="flex:1;margin:0 8px;">
           <input type="text" placeholder="tt.mm.jj" value="${dateVal}" data-qi="${ri}" data-field="date" style="width:90px;">
+          ${fixBtn}
           ${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}
         `;
         header.querySelectorAll('input[data-field]').forEach(inp => {
@@ -2033,7 +2043,34 @@ function renderQualiRounds() {
             saveState();
           });
         });
-      }
+        const fixBtnEl = header.querySelector('.fix-round-btn');
+        if (fixBtnEl) {
+          fixBtnEl.addEventListener('click', e => {
+            e.stopPropagation();
+            const qi = parseInt(e.target.dataset.qi);
+            const r = state.qualiRounds[qi];
+            if (!r.name || r.name === 'tbd') { alert('Bitte zuerst einen Platznamen eingeben.'); return; }
+            if (!r.date || r.date === 'tt.mm.26') { alert('Bitte zuerst ein Datum eingeben.'); return; }
+            if (confirm(`Runde "${r.name}" (${r.date}) fixieren?\n\nDanach können Name und Datum nicht mehr geändert werden.`)) {
+              state.qualiRounds[qi].fixed = true;
+              saveState();
+              // Wetter nachladen
+              const isoDate = parseDate(r.date);
+              const coords = isoDate ? getVenueCoords(r.name) : null;
+              if (isoDate && coords) {
+                fetchWeatherForRound(isoDate, coords).then(w => {
+                  if (w) {
+                    const key = `${isoDate}_${coords.lat}_${coords.lon}`;
+                    weatherCache[key] = w;
+                    renderQualiRounds();
+                  }
+                });
+              }
+              renderQualiRounds();
+              renderResults();
+            }
+          });
+        }
     }
 
     // Tbody aktualisieren
