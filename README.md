@@ -10,7 +10,7 @@ Eine Progressive Web App (PWA) zur Verwaltung und Auswertung des jährlichen Mee
 
 ---
 
-## 📱 Features (v3.5)
+## 📱 Features (v5.2)
 
 ### Turnier-Tab
 - **Gesamtergebnis** – Live-Rangliste mit Netto & Brutto, automatisch berechnet
@@ -22,6 +22,8 @@ Eine Progressive Web App (PWA) zur Verwaltung und Auswertung des jährlichen Mee
 - **In-App Update-Banner** – Benachrichtigung wenn ein anderes Gerät Daten ändert
 - **PIN-Schutz** – Eingaben nur nach PIN-Eingabe möglich (PIN: 2026)
 - **PWA** – Installierbar auf iOS & Android, offline-fähig via Service Worker
+- **Wetter-Badge** – Automatischer Abruf der Wetterdaten pro Runde (Open-Meteo Archive API)
+- **✅ Fixieren-Button** – Gespielte Runden direkt in der App fixieren (PIN aktiv + Ergebnisse vorhanden)
 
 ### Statistik-Tab
 - **Hall of Fame** – Saison-Ranglisten 2022–2026, Gesamtbilanz aller Siege
@@ -225,6 +227,9 @@ Gesamt Brutto = Quali Brutto gewertet + (Endrunde Brutto × 2)
 | v3.4 | Saison 2023 + 2022 + Seed-Scripts |
 | v3.5 | Statistik-Tab: Hall of Fame, Spieler-Profile, Direktvergleich, Platzkönige |
 | v3.6 | Regelquiz: iOS autocapitalize-Fix, neue Quiz-PINs (Markus/Henrick), SW Cache v16 |
+| v5.0 | Wetter-Badge pro Runde (Open-Meteo Archive API), Venue-Koordinaten für alle bekannten Plätze |
+| v5.1 | Rosenhof 12.06.26 als gespielte Runde eingetragen |
+| v5.2 | ✅ Fixieren-Button: gespielte Runden direkt in der App fixieren ohne Chat/Code-Änderung; Bugfix JS-Strukturfehler |
 
 ---
 
