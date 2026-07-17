@@ -166,6 +166,10 @@ service cloud.firestore {
     match /seasons/{season}/tournaments/{doc} {
       allow read, write: if true;
     }
+    // Regelquiz
+    match /quiz/{document=**} {
+      allow read, write: if true;
+    }
   }
 }
 ```
