@@ -689,19 +689,33 @@ async function loadSeasonLeaderboard() {
   const months = Array.from({length:12},(_,i) => year+'-'+String(i+1).padStart(2,'0'));
   const totals = {};
   PLAYERS.forEach(p => { totals[p.name] = { points:0, months:0 }; });
-  await Promise.all(months.map(async mk => {
-    try {
-      const snap = await db.collection('quiz').doc(mk).collection('answers').get();
-      snap.forEach(doc => { if (totals[doc.id]) { totals[doc.id].points += doc.data().points||doc.data().score||0; totals[doc.id].months++; } });
-    } catch(e) {}
+
+  // Alle Monate parallel laden
+  const results = await Promise.allSettled(months.map(async mk => {
+    const snap = await db.collection('quiz').doc(mk).collection('answers').get();
+    snap.forEach(doc => {
+      if (totals[doc.id]) {
+        totals[doc.id].points += doc.data().points || doc.data().score || 0;
+        totals[doc.id].months++;
+      }
+    });
   }));
+
   const tbody = document.getElementById('tbody-season');
   tbody.innerHTML = '';
   const medals = ['\u{1F947}','\u{1F948}','\u{1F949}','4.'];
-  Object.entries(totals).sort((a,b) => b[1].points-a[1].points).forEach(([name,d],i) => {
+  const sorted = Object.entries(totals).sort((a,b) => b[1].points - a[1].points);
+
+  if (sorted.every(([,d]) => d.months === 0)) {
+    // Noch keine Quiz-Daten vorhanden
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">Noch keine Quiz-Ergebnisse für ' + year + '</td></tr>';
+    return;
+  }
+
+  sorted.forEach(([name, d], i) => {
     const tr = document.createElement('tr');
-    if (i<3) tr.className = 'rank-'+(i+1);
-    tr.innerHTML = '<td>'+medals[i]+'</td><td><strong>'+name+'</strong></td><td>'+d.months+'</td><td><strong>'+d.points+'</strong></td><td>'+(d.months>0?(d.points/d.months).toFixed(1):'--')+'</td>';
+    if (i < 3) tr.className = 'rank-' + (i+1);
+    tr.innerHTML = '<td>' + medals[i] + '</td><td><strong>' + name + '</strong></td><td>' + d.months + '</td><td><strong>' + d.points + '</strong></td><td>' + (d.months > 0 ? (d.points/d.months).toFixed(1) : '--') + '</td>';
     tbody.appendChild(tr);
   });
 }
