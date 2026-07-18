@@ -888,7 +888,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2026';
-const APP_VERSION = '5.2';
+const APP_VERSION = '5.3';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -2430,20 +2430,66 @@ async function loadAllStats() {
 // ---- Hilfsfunktion: Gesamtnetto einer Saison berechnen ----
 function calcSeasonGesamt(data) {
   if (!data) return PLAYERS.map(() => 0);
-  // Quali: Streicher-Logik vereinfacht (niedrigster Netto-Wert wird gestrichen)
+
+  // 1. Gespielte Runden identifizieren
+  const playedIndices = data.qualiRounds
+    .map((r, i) => r.netto.some(v => v > 0) ? i : -1)
+    .filter(i => i >= 0);
+
+  // 2. Für jeden Spieler: effektive Werte + Streicher
   const qualiNetto = PLAYERS.map((_, pi) => {
-    const played = data.qualiRounds.filter(r => r.netto.some(v => v > 0));
-    const vals = played.map(r => {
-      const v = r.netto[pi];
-      return v > 0 ? v : Math.min(...PLAYERS.map((_,i) => i !== pi && r.netto[i] > 0 ? r.netto[i] : 999).filter(x => x < 999), 0);
-    }).filter(v => v > 0);
-    if (vals.length === 0) return 0;
-    const minVal = Math.min(...vals);
-    return vals.reduce((s, v) => s + v, 0) - minVal;
+    const effNetto = {};
+    const istErsatz = {};
+
+    // Effektive Netto-Werte (mit Ersatz-Logik)
+    for (const ri of playedIndices) {
+      const n = data.qualiRounds[ri].netto[pi];
+      if (n > 0) {
+        effNetto[ri] = n;
+        istErsatz[ri] = false;
+      } else {
+        // Ersatz = schlechtester Wert der anderen Spieler
+        const others = PLAYERS.map((_, i) => i).filter(i => i !== pi);
+        const vals = others.map(i => data.qualiRounds[ri].netto[i]).filter(v => v > 0);
+        effNetto[ri] = vals.length > 0 ? Math.min(...vals) : 0;
+        istErsatz[ri] = true;
+      }
+    }
+
+    // Streicher-Logik (wie in getEffectiveValues)
+    const ersatzIndices = playedIndices.filter(ri => istErsatz[ri]);
+    let streichRoundIdx = -1;
+
+    if (ersatzIndices.length > 0) {
+      // Schlechtester (niedrigster) Ersatz-Netto-Wert
+      let minVal = Infinity;
+      for (const ri of ersatzIndices) {
+        if (effNetto[ri] < minVal) { minVal = effNetto[ri]; streichRoundIdx = ri; }
+      }
+    } else if (playedIndices.length > 0) {
+      // Kein Ersatz → schlechtestes eigenes Ergebnis
+      let minVal = Infinity;
+      for (const ri of playedIndices) {
+        if (effNetto[ri] < minVal) { minVal = effNetto[ri]; streichRoundIdx = ri; }
+      }
+    }
+
+    // Summe ohne Streicher
+    let nettoTotal = 0;
+    for (const ri of playedIndices) {
+      if (ri !== streichRoundIdx) {
+        nettoTotal += effNetto[ri];
+      }
+    }
+    return nettoTotal;
   });
+
+  // 3. Final-Runden (kein Streicher, ×2)
   const finalNetto = PLAYERS.map((_, pi) =>
     data.finalRounds.reduce((s, r) => s + (r.netto[pi] || 0), 0)
   );
+
+  // 4. Gesamt = Quali gewertet + Final × 2
   return PLAYERS.map((_, pi) => qualiNetto[pi] + finalNetto[pi] * 2);
 }
 
