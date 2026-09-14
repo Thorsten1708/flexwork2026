@@ -10,13 +10,13 @@ Eine Progressive Web App (PWA) zur Verwaltung und Auswertung des jährlichen Mee
 
 ---
 
-## 📱 Features (v5.4)
+## 📱 Features (v6.0)
 
 ### Turnier-Tab
 - **Endstand (Kompakt)** – Kompakttabelle ganz oben: Plätze 1–4 auf einen Blick (nur Netto: Quali, Endrunde ×2, Gesamt)
 - **Gesamtergebnis (Details)** – Live-Rangliste mit Netto & Brutto, automatisch berechnet
 - **Qualifikationsrunde** – 8 Runden, Streicher-Regel (schlechteste Runde wird gestrichen), Ersatz-Werte bei Abwesenheit
-- **Endrunde Race4Munich** – 4 Runden in Bad Griesbach, Faktor ×2 in Gesamtwertung
+- **Endrunde Race2Munich** – 4 Runden in Bad Griesbach, Faktor ×2 in Gesamtwertung (Titel dynamisch mit Saisonjahr)
 - **Zusatzstatistik-Erfassung** – Pro Runde aufklappbar: 🐦 Birdies · 👗 Ladies · 🕳️ 3-Putt · ✏️ Striche (ab Saison 2027)
 - **Verlaufsdiagramm** – Kumulierte Netto-Punkte über die Qualirunden (Chart.js)
 - **PDF-Export** – Druckoptimierte Ansicht via Browser-Print
@@ -221,13 +221,18 @@ git push
 ### Qualifikationsrunde
 - Jeder Spieler spielt alle Runden
 - **Streicher-Regel**: Die schlechteste Netto-Runde wird gestrichen
+- **Streicher erst ab 2 gespielten Runden** (bei nur 1 Runde kein Streicher)
 - **Ersatz-Wert**: Fehlt ein Spieler, bekommt er den schlechtesten Wert der anderen Spieler dieser Runde
 - Streicher bei Ersatz-Runden: Der schlechteste Ersatz-Wert wird gestrichen
 
-### Endrunde
+### Endrunde (Race2Munich)
 - 4 Runden in Bad Griesbach
 - Kein Streicher
 - Faktor **×2** in der Gesamtwertung
+
+### Zusatzstatistik (ab Saison 2027)
+- Pro Runde erfassbar: Birdies, Ladies (Drive vor Damenabschlag), 3-Putt, Striche (kein Score)
+- Auswertung im Statistik-Tab: Gesamt (alle Saisons), pro gewählter Saison, pro Platz
 
 ### Gesamtwertung
 ```
@@ -254,6 +259,7 @@ Gesamt Brutto = Quali Brutto gewertet + (Endrunde Brutto × 2)
 | v5.1 | Rosenhof 12.06.26 als gespielte Runde eingetragen |
 | v5.2 | ✅ Fixieren-Button: gespielte Runden direkt in der App fixieren ohne Chat/Code-Änderung; Bugfix JS-Strukturfehler |
 | v5.4 | Saison 2027 (Standard-Einstieg, PIN 2027); Endstand-Kompakttabelle (Plätze 1–4, nur Netto); Zusatzstatistik-Erfassung + Auswertung (Birdies, Ladies, 3-Putt, Striche) ab 2027; SW-Cache v18 |
+| v6.0 | Zusatzstatistik nach gewählter Saison (Gesamt / Saison / Platz, untereinander); Streicher erst ab 2 Runden; Endrunde umbenannt in Race2Munich (dynamisch mit Saisonjahr); Endstand-Spaltenköpfe gekürzt; Panel-Werte bei Saisonwechsel korrekt; SW-Cache v24 |
 
 ---
 

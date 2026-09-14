@@ -109,8 +109,8 @@
 <header>
   <div class="logo">DB</div>
   <div>
-    <h1>Meeting@FlexWork – Dokumentation</h1>
-    <p>Golf Turnier App · v5.4</p>
+    <h1>Meeting@FlexWork – Benutzerhandbuch</h1>
+    <p>Golf Turnier App · v6.0</p>
   </div>
   <a href="index.html">▶ Zur App</a>
 </header>
@@ -148,7 +148,7 @@
 
     <!-- FEATURES -->
     <h2 id="features">✨ Features</h2>
-    <h3>Turnier-Tab <span class="version-tag">v5.4</span></h3>
+    <h3>Turnier-Tab <span class="version-tag">v6.0</span></h3>
     <div class="feature-grid">
       <div class="feature-item"><div class="fi-icon">🏆</div><div class="fi-title">Endstand (Kompakt)</div><div class="fi-desc">Plätze 1–4 auf einen Blick, nur Netto (Quali · Endrunde ×2 · Gesamt)</div></div>
       <div class="feature-item"><div class="fi-icon">🎯</div><div class="fi-title">Gesamtergebnis</div><div class="fi-desc">Live-Rangliste Netto & Brutto, automatisch berechnet</div></div>
@@ -164,7 +164,7 @@
       <div class="feature-item"><div class="fi-icon">✅</div><div class="fi-title">Fixieren-Button</div><div class="fi-desc">Gespielte Runden direkt in der App fixieren – kein Code-Eingriff nötig</div></div>
     </div>
 
-    <h3>Statistik-Tab <span class="version-tag">v5.4</span></h3>
+    <h3>Statistik-Tab <span class="version-tag">v6.0</span></h3>
     <div class="feature-grid">
       <div class="feature-item"><div class="fi-icon">🏆</div><div class="fi-title">Hall of Fame</div><div class="fi-desc">Saison-Ranglisten 2022–2027, Gesamtbilanz</div></div>
       <div class="feature-item"><div class="fi-icon">👤</div><div class="fi-title">Spieler-Profile</div><div class="fi-desc">Ø Netto, Bestleistungen, Verlaufschart</div></div>
@@ -184,7 +184,7 @@
           <tr><td>Hosting</td><td><span class="badge badge-green">GitHub Pages</span></td><td>Automatisches Deployment bei Push auf main</td></tr>
           <tr><td>Charts</td><td><span class="badge badge-blue">Chart.js 4.4</span></td><td>CDN via jsdelivr.net</td></tr>
           <tr><td>Fonts</td><td><span class="badge badge-blue">Inter</span></td><td>Google Fonts</td></tr>
-          <tr><td>PWA</td><td><span class="badge badge-green">Service Worker</span></td><td>Cache-First Strategie, Version mfw2026-v18</td></tr>
+          <tr><td>PWA</td><td><span class="badge badge-green">Service Worker</span></td><td>Cache-First Strategie, Version mfw2026-v24</td></tr>
         </tbody>
       </table>
     </div>
@@ -310,10 +310,11 @@ git push</code></pre>
     <ul>
       <li>Jeder Spieler spielt alle Runden der Saison</li>
       <li><strong>Streicher-Regel:</strong> Die schlechteste Netto-Runde jedes Spielers wird gestrichen und zählt weder für Netto noch für Brutto</li>
+      <li><strong>Streicher erst ab 2 gespielten Runden:</strong> Bei nur einer gespielten Runde wird kein Streicher gesetzt (sonst wäre das Ergebnis 0)</li>
       <li><strong>Ersatz-Wert:</strong> Fehlt ein Spieler in einer Runde (Netto = 0), bekommt er automatisch den schlechtesten Netto-Wert der anderen Spieler dieser Runde als Ersatz</li>
       <li>Bei mehreren Ersatz-Runden: Der schlechteste Ersatz-Wert wird als Streicher verwendet</li>
     </ul>
-    <h3>Endrunde Race4Munich</h3>
+    <h3>Endrunde Race2Munich</h3>
     <ul>
       <li>4 Runden in Bad Griesbach (Do–Sa)</li>
       <li>Kein Streicher – alle 4 Runden zählen</li>
@@ -341,6 +342,7 @@ Gesamt Brutto = Quali Brutto gewertet + (Endrunde Brutto × 2)</code></pre>
     <table>
       <thead><tr><th>Version</th><th>Datum</th><th>Änderungen</th></tr></thead>
       <tbody>
+        <tr><td><span class="badge badge-red">v6.0</span></td><td>Aug 2026</td><td>Zusatzstatistik nach gewählter Saison (Gesamt / Saison / Platz, untereinander); Streicher erst ab 2 Runden; Endrunde umbenannt in Race2Munich (dynamisch mit Saisonjahr); Endstand-Spaltenköpfe gekürzt; Panel-Werte bei Saisonwechsel korrekt; SW-Cache v24</td></tr>
         <tr><td><span class="badge badge-red">v5.4</span></td><td>Aug 2026</td><td>Saison 2027 (Standard-Einstieg, PIN 2027); Endstand-Kompakttabelle (Plätze 1–4, nur Netto); Zusatzstatistik-Erfassung + Auswertung (Birdies, Ladies, 3-Putt, Striche) ab 2027; SW-Cache v18</td></tr>
         <tr><td><span class="badge badge-red">v5.2</span></td><td>Jun 2026</td><td>✅ Fixieren-Button für gespielte Runden direkt in der App; Bugfix JS-Strukturfehler</td></tr>
         <tr><td><span class="badge badge-red">v5.1</span></td><td>Jun 2026</td><td>Rosenhof 12.06.26 als gespielte Runde eingetragen; Datum-Korrektur</td></tr>
