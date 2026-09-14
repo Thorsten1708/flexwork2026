@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Seed 2027 Data</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<h2>Saison 2027 – Daten in Firestore schreiben (leere Werte)</h2>
+<p style="color:#666;font-size:14px;max-width:600px;">
+  Initialisiert die Saison 2027 mit leeren Werten. Runde 1 (Bad Griesbach - Uttlau, 13.09.27)
+  und die 4 Endrunden (Do 09.09. – Sa 11.09.27) sind vorstrukturiert. Alle Scores stehen auf 0
+  und können in der App eingetragen werden.
+</p>
+<button onclick="seedData()" style="font-size:18px;padding:12px 24px;background:#CC0000;color:white;border:none;border-radius:8px;cursor:pointer;">
+  ▶ Jetzt Saison 2027 einspielen
+</button>
+<pre id="log" style="margin-top:20px;background:#f5f5f5;padding:16px;border-radius:8px;font-size:13px;"></pre>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAq4W1dbbwQKst0ZmZOkITJqYMpALukqHQ",
+  authDomain: "flexwork2026.firebaseapp.com",
+  projectId: "flexwork2026",
+  storageBucket: "flexwork2026.firebasestorage.app",
+  messagingSenderId: "618329184932",
+  appId: "1:618329184932:web:6da142379d38c89552a431"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function log(msg) {
+  document.getElementById('log').textContent += msg + '\n';
+}
+
+// Leere Zusatzstatistik-Arrays (4 Spieler: Lutz, Markus, Henrick, Thorsten)
+const z = () => [0, 0, 0, 0];
+
+const data2027 = {
+  qualiRounds: [
+    { name: 'Bad Griesbach - Uttlau', date: '13.09.27', fixed: true,
+      netto: [0,0,0,0], brutto: [0,0,0,0], birdies: z(), ladies: z(), putt3: z(), striche: z() },
+    { name: 'tbd', date: 'tt.mm.27', fixed: false,
+      netto: [0,0,0,0], brutto: [0,0,0,0], birdies: z(), ladies: z(), putt3: z(), striche: z() },
+    { name: 'tbd', date: 'tt.mm.27', fixed: false,
+      netto: [0,0,0,0], brutto: [0,0,0,0], birdies: z(), ladies: z(), putt3: z(), striche: z() },
+    { name: 'tbd', date: 'tt.mm.27', fixed: false,
+      netto: [0,0,0,0], brutto: [0,0,0,0], birdies: z(), ladies: z(), putt3: z(), striche: z() },
+    { name: 'tbd', date: 'tt.mm.27', fixed: false,
+      netto: [0,0,0,0], brutto: [0,0,0,0], birdies: z(), ladies: z(), putt3: z(), striche: z() },
+    { name: 'tbd', date: 'tt.mm.27', fixed: false,
+      netto: [0,0,0,0], brutto: [0,0,0,0], birdies: z(), ladies: z(), putt3: z(), striche: z() },
+    { name: 'tbd', date: 'tt.mm.27', fixed: false,
+      netto: [0,0,0,0], brutto: [0,0,0,0], birdies: z(), ladies: z(), putt3: z(), striche: z() },
+    { name: 'tbd', date: 'tt.mm.27', fixed: false,
+      netto: [0,0,0,0], brutto: [0,0,0,0], birdies: z(), ladies: z(), putt3: z(), striche: z() },
+  ],
+  finalRounds: [
+    { name: 'Bad Griesbach I (Do) – Sagmühle', date: '09.09.27',
+      netto: [0,0,0,0], brutto: [0,0,0,0], birdies: z(), ladies: z(), putt3: z(), striche: z() },
+    { name: 'Bad Griesbach II (Fr) – Brunnwies', date: '10.09.27',
+      netto: [0,0,0,0], brutto: [0,0,0,0], birdies: z(), ladies: z(), putt3: z(), striche: z() },
+    { name: 'Bad Griesbach III (Fr) – Porsche', date: '10.09.27',
+      netto: [0,0,0,0], brutto: [0,0,0,0], birdies: z(), ladies: z(), putt3: z(), striche: z() },
+    { name: 'Bad Griesbach IV (Sa) – Beckenbauer', date: '11.09.27',
+      netto: [0,0,0,0], brutto: [0,0,0,0], birdies: z(), ladies: z(), putt3: z(), striche: z() },
+  ]
+};
+
+async function seedData() {
+  try {
+    log('Schreibe Saison 2027 nach seasons/2027/tournaments/mfw2027 ...');
+    await db.collection('seasons').doc('2027')
+            .collection('tournaments').doc('mfw2027')
+            .set(data2027);
+    log('✅ Erfolgreich gespeichert!');
+    log('');
+    log('Alle Werte stehen auf 0 – trage die Ergebnisse jetzt in der App ein.');
+    log('Du kannst dieses Fenster schließen.');
+  } catch (err) {
+    log('❌ Fehler: ' + err.message);
+  }
+}
+</script>
+</body>
+</html>
