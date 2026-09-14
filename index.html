@@ -931,6 +931,10 @@ function switchSeason(seasonId) {
   currentSeason = seasonId;
   if (activeListener) activeListener(); // unsubscribe old listener
   startListener();
+  // Zusatzstatistik neu rendern falls Statistik-Tab bereits geladen
+  if (statsLoaded && document.getElementById('zusatz-stat-content')) {
+    renderZusatzStats();
+  }
 }
 
 // Populate season selector
@@ -949,7 +953,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2027';
-const APP_VERSION = '5.9';
+const APP_VERSION = '6.0';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -2675,26 +2679,22 @@ function renderZusatzStats() {
   const container = document.getElementById('zusatz-stat-content');
   if (!container) return;
 
-  // Nur Saisons ab 2027 (frühere haben keine Zusatzdaten)
-  const relevantSeasons = Object.keys(allSeasonsData)
-    .filter(sid => parseInt(sid) >= 2027)
-    .sort((a, b) => b - a);
-
-  if (relevantSeasons.length === 0) {
-    container.innerHTML = '<div class="card" style="padding:20px;text-align:center;color:var(--muted);">Noch keine Zusatzstatistik-Daten vorhanden. Erfassung startet mit Saison 2027.</div>';
-    return;
-  }
-
-  // Alle relevanten Runden sammeln (mit Saison-Zuordnung)
-  const allRounds = [];       // { round, sid }
-  relevantSeasons.forEach(sid => {
+  // Alle Runden aller Saisons sammeln (für GESAMT-Werte)
+  const allRounds = [];
+  Object.keys(allSeasonsData).forEach(sid => {
     const data = allSeasonsData[sid];
     if (!data) return;
-    [...(data.qualiRounds||[]), ...(data.finalRounds||[])].forEach(r => allRounds.push({ round: r, sid }));
+    [...(data.qualiRounds||[]), ...(data.finalRounds||[])].forEach(r => allRounds.push(r));
   });
 
-  // Prüfen ob überhaupt Daten
-  const anyData = allRounds.some(({round}) =>
+  // Runden der aktuell gewählten Saison (currentSeason)
+  const seasonData = allSeasonsData[currentSeason];
+  const seasonRounds = seasonData
+    ? [...(seasonData.qualiRounds||[]), ...(seasonData.finalRounds||[])]
+    : [];
+
+  // Prüfen ob irgendwo Daten vorhanden
+  const anyData = allRounds.some(round =>
     ZUSATZ_FIELDS.some(f => Array.isArray(round[f.key]) && round[f.key].some(v => v > 0)));
 
   if (!anyData) {
@@ -2702,55 +2702,55 @@ function renderZusatzStats() {
     return;
   }
 
-  let html = '';
+  let html = `<div class="info-box" style="margin-bottom:16px;">Angezeigte Saison: <strong>${currentSeason}</strong> (im Turnier-Tab wählbar). "Gesamt" umfasst alle Saisons.</div>`;
 
   // ── EBENE 1: GESAMT (alle Saisons, alle Plätze) ──
   const gesamtTotals = emptyZusatzTotals();
-  accumulateZusatz(allRounds.map(x => x.round), gesamtTotals);
-  html += `<h3 style="font-size:15px;font-weight:700;margin:8px 0 12px;color:#1a1a1a;">1️⃣ Gesamt (alle Saisons, alle Plätze)</h3>`;
-  html += zusatzTable('Gesamt – alle Saisons', '#1a1a1a', gesamtTotals);
+  accumulateZusatz(allRounds, gesamtTotals);
+  html += `<h3 style="font-size:15px;font-weight:700;margin:8px 0 12px;color:#1a1a1a;">1️⃣ Gesamt – alle Saisons & Plätze</h3>`;
+  html += zusatzTable('Gesamt (alle Saisons)', '#1a1a1a', gesamtTotals);
 
-  // ── EBENE 2: GESAMT pro Saison ──
-  html += `<h3 style="font-size:15px;font-weight:700;margin:24px 0 12px;color:#1a1a1a;">2️⃣ Gesamt pro Saison</h3>`;
-  relevantSeasons.forEach(sid => {
-    const roundsOfSeason = allRounds.filter(x => x.sid === sid).map(x => x.round);
-    const totals = emptyZusatzTotals();
-    accumulateZusatz(roundsOfSeason, totals);
-    html += zusatzTable('Saison ' + sid, '#455a64', totals);
-  });
+  // ── EBENE 2: GESAMT Saison xxx (gewählte Saison, alle Plätze) ──
+  const seasonTotals = emptyZusatzTotals();
+  accumulateZusatz(seasonRounds, seasonTotals);
+  html += `<h3 style="font-size:15px;font-weight:700;margin:24px 0 12px;color:#1a1a1a;">2️⃣ Gesamt – Saison ${currentSeason}</h3>`;
+  html += zusatzTable('Saison ' + currentSeason + ' (alle Plätze)', '#455a64', seasonTotals);
 
   // ── EBENE 3: Platz GESAMT (alle Saisons, je Platz) ──
   const byVenueAll = {};
-  allRounds.forEach(({round}) => {
+  allRounds.forEach(round => {
     if (!round.name || round.name === 'tbd' || /ausgefallen/i.test(round.name)) return;
+    const hasZusatz = ZUSATZ_FIELDS.some(f => Array.isArray(round[f.key]) && round[f.key].some(v => v > 0));
+    if (!hasZusatz) return;
     if (!byVenueAll[round.name]) byVenueAll[round.name] = emptyZusatzTotals();
     accumulateZusatz([round], byVenueAll[round.name]);
   });
   const allVenues = Object.keys(byVenueAll).sort();
   if (allVenues.length > 0) {
-    html += `<h3 style="font-size:15px;font-weight:700;margin:24px 0 12px;color:#1a1a1a;">3️⃣ Pro Platz (alle Saisons)</h3>`;
+    html += `<h3 style="font-size:15px;font-weight:700;margin:24px 0 12px;color:#1a1a1a;">3️⃣ Pro Platz – alle Saisons</h3>`;
     allVenues.forEach(venue => {
-      html += zusatzTable('🏌️ ' + venue, '#2E7D32', byVenueAll[venue]);
+      html += zusatzTable('🏌️ ' + venue + ' (alle Saisons)', '#2E7D32', byVenueAll[venue]);
     });
   }
 
-  // ── EBENE 4: Platz pro Saison ──
-  html += `<h3 style="font-size:15px;font-weight:700;margin:24px 0 12px;color:#1a1a1a;">4️⃣ Pro Platz und Saison</h3>`;
-  relevantSeasons.forEach(sid => {
-    const roundsOfSeason = allRounds.filter(x => x.sid === sid).map(x => x.round);
-    const byVenue = {};
-    roundsOfSeason.forEach(round => {
-      if (!round.name || round.name === 'tbd' || /ausgefallen/i.test(round.name)) return;
-      const hasZusatz = ZUSATZ_FIELDS.some(f => Array.isArray(round[f.key]) && round[f.key].some(v => v > 0));
-      if (!hasZusatz) return;
-      if (!byVenue[round.name]) byVenue[round.name] = emptyZusatzTotals();
-      accumulateZusatz([round], byVenue[round.name]);
-    });
-    const venues = Object.keys(byVenue).sort();
-    venues.forEach(venue => {
-      html += zusatzTable(`Saison ${sid} · 🏌️ ${venue}`, '#6a4c93', byVenue[venue]);
-    });
+  // ── EBENE 4: Platz Saison xxx (gewählte Saison, je Platz) ──
+  const byVenueSeason = {};
+  seasonRounds.forEach(round => {
+    if (!round.name || round.name === 'tbd' || /ausgefallen/i.test(round.name)) return;
+    const hasZusatz = ZUSATZ_FIELDS.some(f => Array.isArray(round[f.key]) && round[f.key].some(v => v > 0));
+    if (!hasZusatz) return;
+    if (!byVenueSeason[round.name]) byVenueSeason[round.name] = emptyZusatzTotals();
+    accumulateZusatz([round], byVenueSeason[round.name]);
   });
+  const seasonVenues = Object.keys(byVenueSeason).sort();
+  html += `<h3 style="font-size:15px;font-weight:700;margin:24px 0 12px;color:#1a1a1a;">4️⃣ Pro Platz – Saison ${currentSeason}</h3>`;
+  if (seasonVenues.length > 0) {
+    seasonVenues.forEach(venue => {
+      html += zusatzTable(`Saison ${currentSeason} · 🏌️ ${venue}`, '#6a4c93', byVenueSeason[venue]);
+    });
+  } else {
+    html += `<div class="card" style="padding:16px;text-align:center;color:var(--muted);">Keine Zusatzwerte in Saison ${currentSeason} erfasst.</div>`;
+  }
 
   container.innerHTML = html;
 }
