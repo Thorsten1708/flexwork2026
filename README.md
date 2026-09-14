@@ -10,26 +10,29 @@ Eine Progressive Web App (PWA) zur Verwaltung und Auswertung des jährlichen Mee
 
 ---
 
-## 📱 Features (v5.2)
+## 📱 Features (v5.4)
 
 ### Turnier-Tab
-- **Gesamtergebnis** – Live-Rangliste mit Netto & Brutto, automatisch berechnet
+- **Endstand (Kompakt)** – Kompakttabelle ganz oben: Plätze 1–4 auf einen Blick (nur Netto: Quali, Endrunde ×2, Gesamt)
+- **Gesamtergebnis (Details)** – Live-Rangliste mit Netto & Brutto, automatisch berechnet
 - **Qualifikationsrunde** – 8 Runden, Streicher-Regel (schlechteste Runde wird gestrichen), Ersatz-Werte bei Abwesenheit
 - **Endrunde Race4Munich** – 4 Runden in Bad Griesbach, Faktor ×2 in Gesamtwertung
+- **Zusatzstatistik-Erfassung** – Pro Runde aufklappbar: 🐦 Birdies · 👗 Ladies · 🕳️ 3-Putt · ✏️ Striche (ab Saison 2027)
 - **Verlaufsdiagramm** – Kumulierte Netto-Punkte über die Qualirunden (Chart.js)
 - **PDF-Export** – Druckoptimierte Ansicht via Browser-Print
 - **Live-Sync** – Echtzeit-Synchronisation über Firebase Firestore
 - **In-App Update-Banner** – Benachrichtigung wenn ein anderes Gerät Daten ändert
-- **PIN-Schutz** – Eingaben nur nach PIN-Eingabe möglich (PIN: 2026)
+- **PIN-Schutz** – Eingaben nur nach PIN-Eingabe möglich (PIN: 2027)
 - **PWA** – Installierbar auf iOS & Android, offline-fähig via Service Worker
 - **Wetter-Badge** – Automatischer Abruf der Wetterdaten pro Runde (Open-Meteo Archive API)
 - **✅ Fixieren-Button** – Gespielte Runden direkt in der App fixieren (PIN aktiv + Ergebnisse vorhanden)
 
 ### Statistik-Tab
-- **Hall of Fame** – Saison-Ranglisten 2022–2026, Gesamtbilanz aller Siege
+- **Hall of Fame** – Saison-Ranglisten 2022–2027, Gesamtbilanz aller Siege
 - **Spieler-Profile** – Ø Netto, beste/schlechteste Runde, Saison-Siege, Verlaufschart
 - **Direktvergleich** – Rundensiege aller Spieler über alle Saisons
 - **Platzkönige** – Bester Durchschnitt auf Plätzen die mehrfach gespielt wurden
+- **🎯 Zusatzstatistik** – Birdies, Ladies, 3-Putt, Striche pro Spieler, pro Platz und pro Saison (ab 2027)
 
 ---
 
@@ -45,19 +48,22 @@ Eine Progressive Web App (PWA) zur Verwaltung und Auswertung des jährlichen Mee
 ### Firestore-Struktur
 
 ```
-# Aktuelle Saison 2026 (Legacy-Pfad)
+# Saison 2026 (Legacy-Pfad)
 tournaments/
   mfw2026/
     qualiRounds: [...]
     finalRounds: [...]
 
-# Historische Saisons (neuer Pfad)
+# Alle anderen Saisons (neuer Pfad) – inkl. 2027
 seasons/
-  2025/
+  2027/
     tournaments/
-      mfw2025/
+      mfw2027/
         qualiRounds: [...]
         finalRounds: [...]
+  2025/
+    tournaments/
+      mfw2025/ ...
   2024/
     tournaments/
       mfw2024/ ...
@@ -79,7 +85,11 @@ seasons/
       "date": "14.09.25",
       "fixed": true,
       "netto": [22, 23, 26, 23],
-      "brutto": [13, 8, 11, 9]
+      "brutto": [13, 8, 11, 9],
+      "birdies": [0, 0, 0, 0],
+      "ladies": [0, 0, 0, 0],
+      "putt3": [0, 0, 0, 0],
+      "striche": [0, 0, 0, 0]
     }
   ],
   "finalRounds": [
@@ -87,13 +97,19 @@ seasons/
       "name": "Bad Griesbach I (Do) – Sagmühle",
       "date": "10.09.26",
       "netto": [0, 0, 0, 0],
-      "brutto": [0, 0, 0, 0]
+      "brutto": [0, 0, 0, 0],
+      "birdies": [0, 0, 0, 0],
+      "ladies": [0, 0, 0, 0],
+      "putt3": [0, 0, 0, 0],
+      "striche": [0, 0, 0, 0]
     }
   ]
 }
 ```
 
 Spieler-Reihenfolge in Arrays: `[Lutz, Markus, Henrick, Thorsten]`
+
+**Zusatzstatistik-Felder** (ab Saison 2027): `birdies`, `ladies` (Drive vor dem Damenabschlag), `putt3` (3-Putt), `striche` (kein Score). Bei älteren Saisons nicht vorhanden – werden beim Laden automatisch mit Nullen ergänzt.
 
 ---
 
@@ -105,11 +121,14 @@ In der `SEASONS`-Konstante einen neuen Eintrag hinzufügen:
 
 ```javascript
 const SEASONS = {
+  '2028': { label: 'Saison 2028', legacy: false, tournamentId: 'mfw2028' }, // NEU
+  '2027': { label: 'Saison 2027', legacy: false, tournamentId: 'mfw2027' },
   '2026': { label: 'Saison 2026', legacy: true, legacyDoc: 'mfw2026' },
-  '2027': { label: 'Saison 2027', legacy: false, tournamentId: 'mfw2027' }, // NEU
   ...
 };
 ```
+
+Die neueste Saison zuerst eintragen (steht dann oben im Dropdown). Ggf. `let currentSeason = '2028';` setzen, damit die App mit der neuen Saison startet.
 
 ### 2. Seed-Script erstellen
 
@@ -234,6 +253,7 @@ Gesamt Brutto = Quali Brutto gewertet + (Endrunde Brutto × 2)
 | v5.0 | Wetter-Badge pro Runde (Open-Meteo Archive API), Venue-Koordinaten für alle bekannten Plätze |
 | v5.1 | Rosenhof 12.06.26 als gespielte Runde eingetragen |
 | v5.2 | ✅ Fixieren-Button: gespielte Runden direkt in der App fixieren ohne Chat/Code-Änderung; Bugfix JS-Strukturfehler |
+| v5.4 | Saison 2027 (Standard-Einstieg, PIN 2027); Endstand-Kompakttabelle (Plätze 1–4, nur Netto); Zusatzstatistik-Erfassung + Auswertung (Birdies, Ladies, 3-Putt, Striche) ab 2027; SW-Cache v18 |
 
 ---
 

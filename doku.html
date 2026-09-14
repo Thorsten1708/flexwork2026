@@ -110,7 +110,7 @@
   <div class="logo">DB</div>
   <div>
     <h1>Meeting@FlexWork – Dokumentation</h1>
-    <p>Golf Turnier App · v5.2</p>
+    <p>Golf Turnier App · v5.4</p>
   </div>
   <a href="index.html">▶ Zur App</a>
 </header>
@@ -148,26 +148,29 @@
 
     <!-- FEATURES -->
     <h2 id="features">✨ Features</h2>
-    <h3>Turnier-Tab <span class="version-tag">v5.2</span></h3>
+    <h3>Turnier-Tab <span class="version-tag">v5.4</span></h3>
     <div class="feature-grid">
+      <div class="feature-item"><div class="fi-icon">🏆</div><div class="fi-title">Endstand (Kompakt)</div><div class="fi-desc">Plätze 1–4 auf einen Blick, nur Netto (Quali · Endrunde ×2 · Gesamt)</div></div>
       <div class="feature-item"><div class="fi-icon">🎯</div><div class="fi-title">Gesamtergebnis</div><div class="fi-desc">Live-Rangliste Netto & Brutto, automatisch berechnet</div></div>
       <div class="feature-item"><div class="fi-icon">⛳</div><div class="fi-title">Qualifikationsrunde</div><div class="fi-desc">8 Runden, Streicher-Regel, Ersatz-Werte</div></div>
       <div class="feature-item"><div class="fi-icon">🏅</div><div class="fi-title">Endrunde ×2</div><div class="fi-desc">4 Runden Bad Griesbach, doppelte Gewichtung</div></div>
+      <div class="feature-item"><div class="fi-icon">📊</div><div class="fi-title">Zusatzstatistik</div><div class="fi-desc">Pro Runde: Birdies, Ladies, 3-Putt, Striche (ab 2027)</div></div>
       <div class="feature-item"><div class="fi-icon">📈</div><div class="fi-title">Verlaufsdiagramm</div><div class="fi-desc">Kumulierte Netto-Punkte über Qualirunden</div></div>
       <div class="feature-item"><div class="fi-icon">🖨️</div><div class="fi-title">PDF-Export</div><div class="fi-desc">Druckoptimierte Ansicht via Browser-Print</div></div>
       <div class="feature-item"><div class="fi-icon">🔔</div><div class="fi-title">Update-Banner</div><div class="fi-desc">Benachrichtigung bei Änderungen anderer Geräte</div></div>
-      <div class="feature-item"><div class="fi-icon">🔒</div><div class="fi-title">PIN-Schutz</div><div class="fi-desc">Eingaben nur nach PIN (2026)</div></div>
+      <div class="feature-item"><div class="fi-icon">🔒</div><div class="fi-title">PIN-Schutz</div><div class="fi-desc">Eingaben nur nach PIN (2027)</div></div>
       <div class="feature-item"><div class="fi-icon">📱</div><div class="fi-title">PWA</div><div class="fi-desc">Installierbar, offline-fähig via Service Worker</div></div>
       <div class="feature-item"><div class="fi-icon">🌤️</div><div class="fi-title">Wetter-Badge</div><div class="fi-desc">Automatischer Abruf der Wetterdaten pro Runde (Open-Meteo Archive API)</div></div>
       <div class="feature-item"><div class="fi-icon">✅</div><div class="fi-title">Fixieren-Button</div><div class="fi-desc">Gespielte Runden direkt in der App fixieren – kein Code-Eingriff nötig</div></div>
     </div>
 
-    <h3>Statistik-Tab <span class="version-tag">v3.5</span></h3>
+    <h3>Statistik-Tab <span class="version-tag">v5.4</span></h3>
     <div class="feature-grid">
-      <div class="feature-item"><div class="fi-icon">🏆</div><div class="fi-title">Hall of Fame</div><div class="fi-desc">Saison-Ranglisten 2022–2026, Gesamtbilanz</div></div>
+      <div class="feature-item"><div class="fi-icon">🏆</div><div class="fi-title">Hall of Fame</div><div class="fi-desc">Saison-Ranglisten 2022–2027, Gesamtbilanz</div></div>
       <div class="feature-item"><div class="fi-icon">👤</div><div class="fi-title">Spieler-Profile</div><div class="fi-desc">Ø Netto, Bestleistungen, Verlaufschart</div></div>
       <div class="feature-item"><div class="fi-icon">⚔️</div><div class="fi-title">Direktvergleich</div><div class="fi-desc">Rundensiege aller Spieler über alle Saisons</div></div>
       <div class="feature-item"><div class="fi-icon">👑</div><div class="fi-title">Platzkönige</div><div class="fi-desc">Bester Schnitt auf mehrfach gespielten Plätzen</div></div>
+      <div class="feature-item"><div class="fi-icon">🎯</div><div class="fi-title">Zusatzstatistik</div><div class="fi-desc">Birdies, Ladies, 3-Putt, Striche pro Spieler/Platz/Saison (ab 2027)</div></div>
     </div>
 
     <!-- ARCHITEKTUR -->
@@ -181,14 +184,14 @@
           <tr><td>Hosting</td><td><span class="badge badge-green">GitHub Pages</span></td><td>Automatisches Deployment bei Push auf main</td></tr>
           <tr><td>Charts</td><td><span class="badge badge-blue">Chart.js 4.4</span></td><td>CDN via jsdelivr.net</td></tr>
           <tr><td>Fonts</td><td><span class="badge badge-blue">Inter</span></td><td>Google Fonts</td></tr>
-          <tr><td>PWA</td><td><span class="badge badge-green">Service Worker</span></td><td>Cache-First Strategie, Version mfw2026-v16</td></tr>
+          <tr><td>PWA</td><td><span class="badge badge-green">Service Worker</span></td><td>Cache-First Strategie, Version mfw2026-v18</td></tr>
         </tbody>
       </table>
     </div>
 
     <!-- FIRESTORE -->
     <h2 id="firestore">🔥 Firestore-Struktur</h2>
-    <p>Die App verwendet zwei Pfad-Schemata – einen Legacy-Pfad für Saison 2026 und einen neuen hierarchischen Pfad für alle anderen Saisons:</p>
+    <p>Die App verwendet zwei Pfad-Schemata – einen Legacy-Pfad nur für Saison 2026 und einen neuen hierarchischen Pfad für alle anderen Saisons (inkl. 2027):</p>
     <pre><code># Saison 2026 (Legacy-Pfad – wird nicht geändert)
 tournaments/
   mfw2026/
@@ -244,8 +247,9 @@ service cloud.firestore {
       </div>
     </div>
     <pre><code>const SEASONS = {
+  '2028': { label: 'Saison 2028', legacy: false, tournamentId: 'mfw2028' }, // NEU
+  '2027': { label: 'Saison 2027', legacy: false, tournamentId: 'mfw2027' },
   '2026': { label: 'Saison 2026', legacy: true, legacyDoc: 'mfw2026' },
-  '2027': { label: 'Saison 2027', legacy: false, tournamentId: 'mfw2027' }, // NEU
   // ...
 };</code></pre>
 
@@ -337,6 +341,7 @@ Gesamt Brutto = Quali Brutto gewertet + (Endrunde Brutto × 2)</code></pre>
     <table>
       <thead><tr><th>Version</th><th>Datum</th><th>Änderungen</th></tr></thead>
       <tbody>
+        <tr><td><span class="badge badge-red">v5.4</span></td><td>Aug 2026</td><td>Saison 2027 (Standard-Einstieg, PIN 2027); Endstand-Kompakttabelle (Plätze 1–4, nur Netto); Zusatzstatistik-Erfassung + Auswertung (Birdies, Ladies, 3-Putt, Striche) ab 2027; SW-Cache v18</td></tr>
         <tr><td><span class="badge badge-red">v5.2</span></td><td>Jun 2026</td><td>✅ Fixieren-Button für gespielte Runden direkt in der App; Bugfix JS-Strukturfehler</td></tr>
         <tr><td><span class="badge badge-red">v5.1</span></td><td>Jun 2026</td><td>Rosenhof 12.06.26 als gespielte Runde eingetragen; Datum-Korrektur</td></tr>
         <tr><td><span class="badge badge-red">v5.0</span></td><td>Jun 2026</td><td>Wetter-Badge pro Runde (Open-Meteo Archive API), Venue-Koordinaten für alle bekannten Plätze</td></tr>
