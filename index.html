@@ -325,6 +325,38 @@
   .chart-card { background: white; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 16px; margin-bottom: 16px; }
   .chart-card canvas { max-height: 280px; }
 
+  /* ---- ZUSATZSTATISTIK (Birdies, Ladies, 3-Putt, Striche) ---- */
+  .zusatz-toggle {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; padding: 8px; margin: 0;
+    background: #f0f4f8; border: none; border-top: 1px solid var(--border);
+    color: #555; font-size: 12px; font-weight: 600; font-family: inherit;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .zusatz-toggle:hover { background: #e4ebf2; }
+  .zusatz-panel { display: none; padding: 8px 0; background: #fafcff; border-top: 1px solid var(--border); }
+  .zusatz-panel.open { display: block; }
+  .zusatz-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .zusatz-table th {
+    background: #eef2f6; color: #555; font-size: 11px; font-weight: 600;
+    text-transform: none; letter-spacing: 0; padding: 6px 4px; text-align: center;
+  }
+  .zusatz-table th:first-child { text-align: left; padding-left: 12px; }
+  .zusatz-table td { padding: 4px; text-align: center; border-bottom: 1px solid #eee; }
+  .zusatz-table td:first-child { text-align: left; padding-left: 12px; font-weight: 500; }
+  .zusatz-table input {
+    width: 44px; padding: 4px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 13px; text-align: center; font-family: inherit; outline: none;
+  }
+  .zusatz-table input:focus { border-color: var(--red); }
+  .zusatz-badge-icons { font-size: 11px; color: var(--muted); }
+
+  /* Zusatzstatistik-Auswertung */
+  .zusatz-stat-table th.z-birdie { background: #e8f5e9; color: #2E7D32; }
+  .zusatz-stat-table th.z-ladies { background: #fce4ec; color: #c62828; }
+  .zusatz-stat-table th.z-putt { background: #fff3e0; color: #E65100; }
+  .zusatz-stat-table th.z-strich { background: #eceff1; color: #455a64; }
+
   /* ---- TABS ---- */
   .tab-nav {
     background: var(--red-dark);
@@ -567,9 +599,30 @@
 <!-- ==================== TURNIER-SEITE ==================== -->
 <div class="tournament-page" id="page-tournament">
 
+<!-- PODEST / KOMPAKT-ÜBERSICHT (ganz oben) -->
+<section id="sec-podest">
+  <div class="section-title">🏆 Endstand</div>
+  <div class="card">
+    <div class="table-scroll">
+    <table class="gesamtergebnis-table" id="tbl-podest">
+      <thead>
+        <tr>
+          <th>Platz</th>
+          <th>Spieler</th>
+          <th class="col-netto">Netto Quali</th>
+          <th class="col-netto">Netto Endrunde</th>
+          <th class="col-gesamt-netto">⭐ Gesamt</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-podest"></tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
 <!-- GESAMTERGEBNIS (oben) -->
 <section id="sec-gesamtergebnis">
-  <div class="section-title">🎯 Gesamtergebnis</div>
+  <div class="section-title">🎯 Gesamtergebnis (Details)</div>
   <div class="info-box">
     <strong>Formel:</strong> Gesamt Netto = Quali Netto gew. + (Endrunde Netto × 2) &nbsp;|&nbsp; Gesamt Brutto = Quali Brutto gew. + (Endrunde Brutto × 2)
   </div>
@@ -768,6 +821,13 @@
     <div class="tips-grid" id="tips-grid"></div>
   </section>
 
+  <!-- Zusatzstatistik (ab 2027) -->
+  <section id="sec-zusatz">
+    <div class="section-title">🎯 Zusatzstatistik</div>
+    <div class="info-box">🐦 Birdies · 👗 Ladies (Drive vor dem Damenabschlag) · 🕳️ 3-Putt · ✏️ Striche (kein Score). Erfasst ab Saison 2027.</div>
+    <div id="zusatz-stat-content"></div>
+  </section>
+
 </div><!-- end stats-page -->
 
 <!-- ==================== WETTER-SEITE ==================== -->
@@ -848,13 +908,14 @@ const db = firebase.firestore();
 //   Saison 2026 (legacy): tournaments/mfw2026
 //   Neue Saisons:         seasons/{seasonId}/tournaments/{tournamentId}
 const SEASONS = {
+  '2027': { label: 'Saison 2027', legacy: false, tournamentId: 'mfw2027' },
   '2026': { label: 'Saison 2026', legacy: true, legacyDoc: 'mfw2026' },
   '2025': { label: 'Saison 2025', legacy: false, tournamentId: 'mfw2025' },
   '2024': { label: 'Saison 2024', legacy: false, tournamentId: 'mfw2024' },
   '2023': { label: 'Saison 2023', legacy: false, tournamentId: 'mfw2023' },
   '2022': { label: 'Saison 2022', legacy: false, tournamentId: 'mfw2022' },
 };
-let currentSeason = '2026';
+let currentSeason = '2027';
 
 function getDocRef(seasonId) {
   const s = SEASONS[seasonId];
@@ -887,8 +948,8 @@ function initSeasonSelector() {
 // ---- PIN / LOCK STATE ----
 let isUnlocked = false;
 let isSaving = false;
-const CORRECT_PIN = '2026';
-const APP_VERSION = '5.3';
+const CORRECT_PIN = '2027';
+const APP_VERSION = '5.4';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1008,13 +1069,25 @@ function saveState() {
     });
 }
 
+// Stellt sicher, dass jede Runde die Zusatzstatistik-Arrays hat (Birdies, Ladies, 3-Putt, Striche)
+function ensureZusatzFields(round) {
+  const n = PLAYERS.length;
+  if (!Array.isArray(round.birdies)) round.birdies = new Array(n).fill(0);
+  if (!Array.isArray(round.ladies))  round.ladies  = new Array(n).fill(0);
+  if (!Array.isArray(round.putt3))   round.putt3   = new Array(n).fill(0);
+  if (!Array.isArray(round.striche)) round.striche = new Array(n).fill(0);
+  return round;
+}
+
 function loadState(data) {
   if (data && data.qualiRounds && data.finalRounds) {
+    data.qualiRounds.forEach(ensureZusatzFields);
+    data.finalRounds.forEach(ensureZusatzFields);
     return { qualiRounds: data.qualiRounds, finalRounds: data.finalRounds };
   }
   return {
-    qualiRounds: DEFAULT_QUALI_ROUNDS.map(r => ({...r, netto:[...r.netto], brutto:[...r.brutto]})),
-    finalRounds: DEFAULT_FINAL_ROUNDS.map(r => ({...r, netto:[...r.netto], brutto:[...r.brutto]})),
+    qualiRounds: DEFAULT_QUALI_ROUNDS.map(r => ensureZusatzFields({...r, netto:[...r.netto], brutto:[...r.brutto]})),
+    finalRounds: DEFAULT_FINAL_ROUNDS.map(r => ensureZusatzFields({...r, netto:[...r.netto], brutto:[...r.brutto]})),
   };
 }
 
@@ -1966,6 +2039,72 @@ function getRanking(data, key) {
 
 // ---- RENDER ----
 
+// Erzeugt das aufklappbare Zusatzstatistik-Panel für eine Runde
+// type: 'quali' | 'final', ri: Runden-Index
+function buildZusatzPanel(type, ri, round) {
+  ensureZusatzFields(round);
+  const wrap = document.createElement('div');
+
+  const toggle = document.createElement('button');
+  toggle.className = 'zusatz-toggle';
+  toggle.innerHTML = '📊 Zusatzstatistik <span class="zusatz-badge-icons">(Birdies · Ladies · 3-Putt · Striche)</span> ▾';
+
+  const panel = document.createElement('div');
+  panel.className = 'zusatz-panel';
+
+  const table = document.createElement('table');
+  table.className = 'zusatz-table';
+  table.innerHTML = `<thead><tr>
+    <th>Spieler</th>
+    <th>🐦 Birdies</th>
+    <th>👗 Ladies</th>
+    <th>🕳️ 3-Putt</th>
+    <th>✏️ Striche</th>
+  </tr></thead>`;
+  const tbody = document.createElement('tbody');
+
+  PLAYERS.forEach((player, pi) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${player}</td>
+      <td><input type="number" min="0" max="99" value="${round.birdies[pi]||0}" data-ztype="${type}" data-ri="${ri}" data-pi="${pi}" data-zfield="birdies"></td>
+      <td><input type="number" min="0" max="99" value="${round.ladies[pi]||0}"  data-ztype="${type}" data-ri="${ri}" data-pi="${pi}" data-zfield="ladies"></td>
+      <td><input type="number" min="0" max="99" value="${round.putt3[pi]||0}"   data-ztype="${type}" data-ri="${ri}" data-pi="${pi}" data-zfield="putt3"></td>
+      <td><input type="number" min="0" max="99" value="${round.striche[pi]||0}" data-ztype="${type}" data-ri="${ri}" data-pi="${pi}" data-zfield="striche"></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  panel.appendChild(table);
+
+  // Toggle-Verhalten
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    panel.classList.toggle('open');
+    toggle.innerHTML = toggle.innerHTML.replace(panel.classList.contains('open') ? '▾' : '▴', panel.classList.contains('open') ? '▴' : '▾');
+  });
+
+  // Eingabe speichern
+  panel.querySelectorAll('input[data-zfield]').forEach(inp => {
+    inp.addEventListener('change', e => {
+      if (!isUnlocked) { showToast('🔒 Erst entsperren zum Bearbeiten'); e.target.value = (state[t==='quali'?'qualiRounds':'finalRounds'][parseInt(e.target.dataset.ri)][e.target.dataset.zfield][parseInt(e.target.dataset.pi)]) || 0; return; }
+      const t = e.target.dataset.ztype;
+      const rIdx = parseInt(e.target.dataset.ri);
+      const pIdx = parseInt(e.target.dataset.pi);
+      const field = e.target.dataset.zfield;
+      const val = parseInt(e.target.value) || 0;
+      const arr = t === 'quali' ? state.qualiRounds : state.finalRounds;
+      ensureZusatzFields(arr[rIdx]);
+      arr[rIdx][field][pIdx] = val;
+      saveState();
+    });
+  });
+
+  wrap.appendChild(toggle);
+  wrap.appendChild(panel);
+  return wrap;
+}
+
 function renderQualiRounds() {
   const container = document.getElementById('quali-rounds');
   const streichers = getStreichers();
@@ -2002,6 +2141,8 @@ function renderQualiRounds() {
       table.appendChild(tbody);
       tableWrap.appendChild(table);
       card.appendChild(tableWrap);
+      // Zusatzstatistik-Panel anhängen
+      card.appendChild(buildZusatzPanel('quali', ri, round));
       container.appendChild(card);
     }
 
@@ -2166,6 +2307,8 @@ function renderFinalRounds() {
     table.appendChild(tbody);
     tableWrap2.appendChild(table);
     card.appendChild(tableWrap2);
+    // Zusatzstatistik-Panel anhängen
+    card.appendChild(buildZusatzPanel('final', ri, round));
     container.appendChild(card);
   });
 }
@@ -2249,6 +2392,25 @@ function renderGesamt(gesamtData) {
 
   const sorted = PLAYERS.map((p, i) => ({player: p, idx: i, rank: ranks[i], ...gesamtData[i]}))
     .sort((a, b) => a.rank - b.rank);
+
+  // ── PODEST / Kompakt-Übersicht (Netto only, Plätze 1-4) ──
+  const podestBody = document.getElementById('tbody-podest');
+  if (podestBody) {
+    podestBody.innerHTML = '';
+    sorted.forEach(d => {
+      const medal = MEDALS[d.rank - 1] || d.rank + '.';
+      const tr = document.createElement('tr');
+      if (d.rank <= 3) tr.classList.add('rank-' + d.rank);
+      tr.innerHTML = `
+        <td class="platz-cell">${medal}</td>
+        <td><span class="player-name">${d.player}</span></td>
+        <td class="col-netto">${d.qualiNetto}</td>
+        <td class="col-netto">${d.finalNetto * 2} <small style="color:var(--muted)">(${d.finalNetto}×2)</small></td>
+        <td class="col-gesamt-netto"><strong>${d.gesamtNetto}</strong></td>
+      `;
+      podestBody.appendChild(tr);
+    });
+  }
 
   const tbody = document.getElementById('tbody-gesamtergebnis');
   tbody.innerHTML = '';
@@ -2408,6 +2570,11 @@ async function loadAllStats() {
         <div class="section-title">💡 Persönliche Trainingstipps</div>
         <div class="info-box">Automatisch aus den Statistiken abgeleitet – basierend auf Trend, Konsistenz, Druckverhalten und Saisonalität.</div>
         <div class="tips-grid" id="tips-grid"></div>
+      </section>
+      <section id="sec-zusatz">
+        <div class="section-title">🎯 Zusatzstatistik</div>
+        <div class="info-box">🐦 Birdies · 👗 Ladies (Drive vor dem Damenabschlag) · 🕳️ 3-Putt · ✏️ Striche (kein Score). Erfasst ab Saison 2027.</div>
+        <div id="zusatz-stat-content"></div>
       </section>`;
 
     renderHallOfFame();
@@ -2419,12 +2586,122 @@ async function loadAllStats() {
     renderConsistency();
     renderMonthStats();
     renderTrainingTips();
+    renderZusatzStats();
     statsLoaded = true;
 
   } catch(err) {
     console.error(err);
     statsPage.innerHTML = '<div class="stats-loading">❌ Fehler beim Laden der Statistiken.</div>';
   }
+}
+
+// ---- Zusatzstatistik: Birdies, Ladies, 3-Putt, Striche ----
+function renderZusatzStats() {
+  const container = document.getElementById('zusatz-stat-content');
+  if (!container) return;
+
+  const FIELDS = [
+    { key: 'birdies', label: '🐦 Birdies', cls: 'z-birdie' },
+    { key: 'ladies',  label: '👗 Ladies',  cls: 'z-ladies' },
+    { key: 'putt3',   label: '🕳️ 3-Putt',  cls: 'z-putt' },
+    { key: 'striche', label: '✏️ Striche', cls: 'z-strich' },
+  ];
+
+  // Nur Saisons ab 2027 berücksichtigen (frühere haben keine Zusatzdaten)
+  const relevantSeasons = Object.keys(allSeasonsData)
+    .filter(sid => parseInt(sid) >= 2027)
+    .sort((a, b) => b - a);
+
+  if (relevantSeasons.length === 0) {
+    container.innerHTML = '<div class="card" style="padding:20px;text-align:center;color:var(--muted);">Noch keine Zusatzstatistik-Daten vorhanden. Erfassung startet mit Saison 2027.</div>';
+    return;
+  }
+
+  let html = '';
+
+  relevantSeasons.forEach(sid => {
+    const data = allSeasonsData[sid];
+    if (!data) return;
+    const allRounds = [...(data.qualiRounds||[]), ...(data.finalRounds||[])];
+
+    // Gesamt pro Spieler über die Saison
+    const totals = PLAYERS.map((_, pi) => {
+      const t = { birdies: 0, ladies: 0, putt3: 0, striche: 0 };
+      allRounds.forEach(r => {
+        FIELDS.forEach(f => {
+          if (Array.isArray(r[f.key]) && r[f.key][pi]) t[f.key] += r[f.key][pi];
+        });
+      });
+      return t;
+    });
+
+    // Prüfen ob überhaupt Daten vorhanden
+    const hasData = totals.some(t => t.birdies || t.ladies || t.putt3 || t.striche);
+
+    html += `<div class="card" style="margin-bottom:16px;">
+      <div class="card-header" style="background:#1a1a1a;"><span class="round-name">Saison ${sid} – Gesamt</span></div>
+      <div class="table-scroll">
+      <table class="zusatz-stat-table" style="width:100%;border-collapse:collapse;font-size:14px;">
+        <thead><tr>
+          <th style="text-align:left;padding:8px 12px;background:#f9f9f9;">Spieler</th>
+          ${FIELDS.map(f => `<th class="${f.cls}" style="padding:8px 12px;">${f.label}</th>`).join('')}
+        </tr></thead>
+        <tbody>`;
+
+    if (!hasData) {
+      html += `<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--muted);">Noch keine Werte erfasst</td></tr>`;
+    } else {
+      PLAYERS.forEach((player, pi) => {
+        html += `<tr>
+          <td style="padding:8px 12px;font-weight:600;">${player}</td>
+          ${FIELDS.map(f => `<td style="padding:8px 12px;text-align:center;">${totals[pi][f.key] || 0}</td>`).join('')}
+        </tr>`;
+      });
+    }
+    html += `</tbody></table></div></div>`;
+
+    // Aufschlüsselung pro Platz
+    if (hasData) {
+      // Runden mit Platznamen gruppieren
+      const byVenue = {};
+      allRounds.forEach(r => {
+        if (!r.name || r.name === 'tbd' || /ausgefallen/i.test(r.name)) return;
+        // Nur Runden mit erfassten Zusatzdaten
+        const hasZusatz = FIELDS.some(f => Array.isArray(r[f.key]) && r[f.key].some(v => v > 0));
+        if (!hasZusatz) return;
+        if (!byVenue[r.name]) byVenue[r.name] = PLAYERS.map(() => ({ birdies:0, ladies:0, putt3:0, striche:0 }));
+        PLAYERS.forEach((_, pi) => {
+          FIELDS.forEach(f => {
+            if (Array.isArray(r[f.key]) && r[f.key][pi]) byVenue[r.name][pi][f.key] += r[f.key][pi];
+          });
+        });
+      });
+
+      const venues = Object.keys(byVenue);
+      if (venues.length > 0) {
+        html += `<div class="card" style="margin-bottom:24px;">
+          <div class="card-header" style="background:#2E7D32;"><span class="round-name">Saison ${sid} – nach Platz</span></div>`;
+        venues.forEach(venue => {
+          html += `<div style="padding:8px 12px 0;font-weight:700;font-size:13px;color:#2E7D32;">🏌️ ${venue}</div>
+            <div class="table-scroll"><table class="zusatz-stat-table" style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px;">
+            <thead><tr>
+              <th style="text-align:left;padding:6px 12px;background:#f9f9f9;">Spieler</th>
+              ${FIELDS.map(f => `<th class="${f.cls}" style="padding:6px 12px;">${f.label}</th>`).join('')}
+            </tr></thead><tbody>`;
+          PLAYERS.forEach((player, pi) => {
+            html += `<tr>
+              <td style="padding:6px 12px;font-weight:500;">${player}</td>
+              ${FIELDS.map(f => `<td style="padding:6px 12px;text-align:center;">${byVenue[venue][pi][f.key] || 0}</td>`).join('')}
+            </tr>`;
+          });
+          html += `</tbody></table></div>`;
+        });
+        html += `</div>`;
+      }
+    }
+  });
+
+  container.innerHTML = html;
 }
 
 // ---- Hilfsfunktion: Gesamtnetto einer Saison berechnen ----
