@@ -652,6 +652,12 @@
   <button onclick="repairPhotosNow()" style="margin-left:8px;background:#e65100;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;">🔧 Jetzt reparieren</button>
 </div>
 
+<!-- Sichtbares Debug-Log (Ersatz für Konsole) -->
+<div style="text-align:right;padding:2px 16px;">
+  <button onclick="var b=document.getElementById('debug-log');b.style.display=b.style.display==='none'?'block':'none';" style="background:#eee;border:1px solid #ccc;border-radius:5px;font-size:11px;padding:2px 8px;cursor:pointer;color:#555;">🐞 Log</button>
+</div>
+<pre id="debug-log" style="display:none;background:#1a1a1a;color:#8f8;font-size:11px;line-height:1.5;padding:10px 16px;margin:0;max-height:220px;overflow:auto;white-space:pre-wrap;word-break:break-word;"></pre>
+
 <!-- TAB NAVIGATION -->
 <nav class="tab-nav">
   <button class="tab-btn active" onclick="switchTab('tournament')" id="tab-tournament">⛳ Turnier</button>
@@ -1044,7 +1050,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2027';
-const APP_VERSION = '6.7';
+const APP_VERSION = '6.8';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1169,18 +1175,30 @@ function scheduleDebouncedSave() {
   debouncedSaveTimer = setTimeout(() => { saveState(); }, 800);
 }
 
+// Sichtbares On-Screen-Debug-Log (Ersatz für Konsole, falls F12 gesperrt)
+function dbgLog(msg) {
+  const box = document.getElementById('debug-log');
+  if (!box) return;
+  const t = new Date().toLocaleTimeString('de-DE');
+  box.textContent = `[${t}] ${msg}\n` + box.textContent;
+}
+
 function saveState() {
   isSaving = true;
+  const sizeKB = Math.round(JSON.stringify(state).length / 1024);
+  dbgLog(`💾 Speichern → ${currentSeason} (${sizeKB} KB)`);
   // Sicherheits-Timeout: isSaving nach max. 5s zurücksetzen
   const savingTimeout = setTimeout(() => { isSaving = false; }, 5000);
   getDocRef(currentSeason).set(state)
     .then(() => {
       clearTimeout(savingTimeout);
+      dbgLog('✅ Gespeichert OK');
       setTimeout(() => { isSaving = false; }, 1200);
     })
     .catch(err => {
       clearTimeout(savingTimeout);
       console.error('Firestore save error:', err);
+      dbgLog('❌ FEHLER: ' + (err && err.code ? err.code + ' – ' : '') + (err && err.message ? err.message : err));
       isSaving = false;
     });
 }
@@ -2213,6 +2231,9 @@ function startListener() {
         return;
       }
       const newData = doc.exists ? doc.data() : null;
+      const fromCache = doc.metadata && doc.metadata.fromCache;
+      const pending = doc.metadata && doc.metadata.hasPendingWrites;
+      dbgLog(`📥 Snapshot (${currentSeason}) cache=${fromCache} pending=${pending}`);
       console.log('[DEBUG] Daten geladen:', newData ? 'JA' : 'NEIN', newData ? newData.qualiRounds.length + ' Qualirunden' : '');
       const newHash = stateHash(newData);
       if (lastSnapshotHash !== null && newHash !== lastSnapshotHash) {
