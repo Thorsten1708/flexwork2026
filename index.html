@@ -986,8 +986,33 @@ function getDocRef(seasonId) {
   return db.collection('seasons').doc(seasonId).collection('tournaments').doc(s.tournamentId);
 }
 
+// Scorekarten-Fotos liegen in EIGENEN Dokumenten (nicht im Saison-Dokument),
+// weil Firestore pro Dokument max. 1 MiB erlaubt und mehrere Base64-Fotos das
+// Saison-Dokument sprengen würden (→ Speichern schlägt dann komplett fehl).
+// Ein Dokument pro Runde: photos/{roundType}-{ri}
+function getPhotoDocRef(seasonId, roundType, ri) {
+  const s = SEASONS[seasonId];
+  const docId = `${roundType}-${ri}`;
+  if (s.legacy) {
+    return db.collection('tournaments').doc(s.legacyDoc)
+             .collection('photos').doc(docId);
+  }
+  return db.collection('seasons').doc(seasonId)
+           .collection('tournaments').doc(s.tournamentId)
+           .collection('photos').doc(docId);
+}
+
+// Foto-Cache der aktuellen Saison: { "quali-1": "data:image/jpeg;base64,..." }
+let photoCache = {};
+
 function switchSeason(seasonId) {
   if (!SEASONS[seasonId]) return;
+  // Ausstehenden Save noch in die AKTUELLE Saison schreiben, bevor gewechselt wird
+  if (debouncedSaveTimer) {
+    clearTimeout(debouncedSaveTimer);
+    debouncedSaveTimer = null;
+    saveState();
+  }
   currentSeason = seasonId;
   if (activeListener) activeListener(); // unsubscribe old listener
   startListener();
@@ -1013,7 +1038,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2027';
-const APP_VERSION = '6.5';
+const APP_VERSION = '6.6';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1179,6 +1204,8 @@ function compressImageFile(file, maxEdge = 1400, quality = 0.7) {
 }
 
 // Foto fuer eine Runde aufnehmen/auswaehlen
+// Das Foto wird in ein EIGENES Firestore-Dokument gespeichert
+// (photos/{roundType}-{ri}), NICHT in das Saison-Dokument.
 function pickRoundPhoto(roundType, ri) {
   if (!isUnlocked) { showToast('🔒 Erst entsperren zum Bearbeiten'); return; }
   const input = document.createElement('input');
@@ -1192,17 +1219,17 @@ function pickRoundPhoto(roundType, ri) {
     showToast('📷 Foto wird verarbeitet…');
     try {
       let dataUrl = await compressImageFile(file, 1400, 0.7);
-      // Fallback: falls > ~800 KB, staerker komprimieren (Firestore-Limit 1 MB/Dokument)
+      // Fallback: falls > ~800 KB, staerker komprimieren (1 MiB-Limit pro Dokument)
       if (dataUrl.length > 800000) dataUrl = await compressImageFile(file, 1100, 0.55);
       if (dataUrl.length > 950000) { alert('Foto ist zu groß. Bitte ein kleineres Bild wählen.'); return; }
-      const arr = roundType === 'quali' ? state.qualiRounds : state.finalRounds;
-      arr[ri].photo = dataUrl;
-      saveState();
+      const key = `${roundType}-${ri}`;
+      await getPhotoDocRef(currentSeason, roundType, ri).set({ photo: dataUrl });
+      photoCache[key] = dataUrl;
       showToast('✅ Scorekarte gespeichert');
       roundType === 'quali' ? renderQualiRounds() : renderFinalRounds();
     } catch (e) {
       console.error('Foto-Fehler:', e);
-      alert('Das Foto konnte nicht verarbeitet werden.');
+      alert('Das Foto konnte nicht gespeichert werden: ' + (e && e.message ? e.message : e));
     }
   };
   input.click();
@@ -1214,10 +1241,17 @@ function removeRoundPhoto(roundType, ri) {
   const arr = roundType === 'quali' ? state.qualiRounds : state.finalRounds;
   const r = arr[ri];
   if (confirm(`Scorekarten-Foto von "${r.name}" entfernen?`)) {
-    delete arr[ri].photo;
-    saveState();
-    showToast('🗑️ Foto entfernt');
-    roundType === 'quali' ? renderQualiRounds() : renderFinalRounds();
+    const key = `${roundType}-${ri}`;
+    getPhotoDocRef(currentSeason, roundType, ri).delete()
+      .then(() => {
+        delete photoCache[key];
+        showToast('🗑️ Foto entfernt');
+        roundType === 'quali' ? renderQualiRounds() : renderFinalRounds();
+      })
+      .catch(e => {
+        console.error('Foto-Löschen-Fehler:', e);
+        alert('Foto konnte nicht entfernt werden: ' + (e && e.message ? e.message : e));
+      });
   }
 }
 
@@ -1237,7 +1271,8 @@ function closePhotoOverlay() {
 function viewRoundPhoto(roundType, ri) {
   const arr = roundType === 'quali' ? state.qualiRounds : state.finalRounds;
   const r = arr[ri];
-  if (!r || !r.photo) return;
+  const photo = photoCache[`${roundType}-${ri}`];
+  if (!r || !photo) return;
   photoRotation = 0;
   let overlay = document.getElementById('photo-overlay');
   if (!overlay) {
@@ -1255,7 +1290,7 @@ function viewRoundPhoto(roundType, ri) {
       </div>
     </div>
     <div class="photo-scroll">
-      <img src="${r.photo}" alt="Scorekarte ${r.name}">
+      <img src="${photo}" alt="Scorekarte ${r.name}">
     </div>
     <div class="photo-hint">Zum Zoomen mit zwei Fingern aufziehen · ↻ dreht das Bild</div>`;
   overlay.style.display = 'flex';
@@ -1263,7 +1298,7 @@ function viewRoundPhoto(roundType, ri) {
 
 // Button(s) fuer den Runden-Header je nach Zustand erzeugen
 function getPhotoButtonsHtml(roundType, ri, round) {
-  const hasPhoto = !!round.photo;
+  const hasPhoto = !!photoCache[`${roundType}-${ri}`];
   let html = '';
   if (hasPhoto) {
     html += `<button class="photo-btn" onclick="event.stopPropagation(); viewRoundPhoto('${roundType}', ${ri})" title="Scorekarte ansehen">🖼️<span class="photo-btn-label"> Scorekarte</span></button>`;
@@ -2065,8 +2100,69 @@ function renderTrainingTips() {
 
 let activeListener = null;
 
+// Lädt alle Scorekarten-Fotos der aktuellen Saison aus der separaten
+// photos-Collection in den photoCache und rendert die Runden neu.
+async function loadPhotosForSeason(seasonId) {
+  photoCache = {};
+  try {
+    const s = SEASONS[seasonId];
+    const base = s.legacy
+      ? db.collection('tournaments').doc(s.legacyDoc)
+      : db.collection('seasons').doc(seasonId).collection('tournaments').doc(s.tournamentId);
+    const snap = await base.collection('photos').get();
+    snap.forEach(doc => {
+      const d = doc.data();
+      if (d && d.photo) photoCache[doc.id] = d.photo;
+    });
+  } catch (e) {
+    console.warn('Fotos laden fehlgeschlagen:', e);
+  }
+  // Einmalige Migration: alte Fotos, die noch als round.photo IM Saison-Dokument
+  // liegen, in die separate photos-Collection auslagern und aus dem
+  // Saison-Dokument entfernen (sonst bleibt es über dem 1-MiB-Limit).
+  if (seasonId === currentSeason) {
+    await migrateInlinePhotos(seasonId);
+    renderQualiRounds();
+    renderFinalRounds();
+  }
+}
+
+async function migrateInlinePhotos(seasonId) {
+  let changed = false;
+  const migrateArr = async (arr, type) => {
+    for (let ri = 0; ri < arr.length; ri++) {
+      if (arr[ri] && arr[ri].photo) {
+        const key = `${type}-${ri}`;
+        try {
+          await getPhotoDocRef(seasonId, type, ri).set({ photo: arr[ri].photo });
+          photoCache[key] = arr[ri].photo;
+          delete arr[ri].photo;
+          changed = true;
+          console.log('[MIGRATION] Foto ausgelagert:', key);
+        } catch (e) {
+          console.error('[MIGRATION] Fehler bei', key, e);
+        }
+      }
+    }
+  };
+  await migrateArr(state.qualiRounds, 'quali');
+  await migrateArr(state.finalRounds, 'final');
+  // Saison-Dokument ohne die Fotos neu schreiben → wieder unter 1 MiB
+  if (changed) {
+    try {
+      await getDocRef(seasonId).set(state);
+      console.log('[MIGRATION] Saison-Dokument ohne Inline-Fotos gespeichert');
+      showToast('✅ Fotos ausgelagert – Speichern funktioniert wieder');
+    } catch (e) {
+      console.error('[MIGRATION] Konnte Saison-Dokument nicht neu schreiben:', e);
+    }
+  }
+}
+
+let photosLoadedForSeason = null;
 function startListener() {
   console.log('[DEBUG] startListener() aufgerufen für Saison:', currentSeason);
+  photosLoadedForSeason = null;
   activeListener = getDocRef(currentSeason).onSnapshot(
     (doc) => {
       console.log('[DEBUG] Snapshot empfangen, exists:', doc.exists);
@@ -2086,6 +2182,12 @@ function startListener() {
       console.log('[DEBUG] State geladen, rufe recalcAndRender()');
       recalcAndRender();
       console.log('[DEBUG] recalcAndRender() abgeschlossen');
+      // Fotos erst NACH dem ersten Snapshot laden/migrieren (state ist dann gesetzt).
+      // Pro Saisonwechsel nur einmal.
+      if (photosLoadedForSeason !== currentSeason) {
+        photosLoadedForSeason = currentSeason;
+        loadPhotosForSeason(currentSeason);
+      }
     },
     (err) => {
       console.error('[DEBUG] Firestore onSnapshot error:', err);
