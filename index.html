@@ -1050,21 +1050,21 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2027';
-const APP_VERSION = '6.8.1';
+const APP_VERSION = '6.9';
 
 function toggleLock() {
   if (isUnlocked) {
     isUnlocked = false;
     document.getElementById('lockBtn').textContent = '🔒';
     document.getElementById('lockBtn').classList.remove('unlocked');
-    updateInputState();
+    recalcAndRender();  // vollständig neu rendern + Listener neu binden
   } else {
     const pin = prompt('PIN eingeben:');
     if (pin === CORRECT_PIN) {
       isUnlocked = true;
       document.getElementById('lockBtn').textContent = '🔓';
       document.getElementById('lockBtn').classList.add('unlocked');
-      updateInputState();
+      recalcAndRender();  // vollständig neu rendern + Listener neu binden
     } else if (pin !== null) {
       alert('Falscher PIN');
     }
@@ -1075,9 +1075,11 @@ function updateInputState() {
   document.querySelectorAll('input[type=number], input[type=text]').forEach(inp => {
     inp.disabled = !isUnlocked;
   });
-  // Runden neu rendern, damit Foto-/Fixier-Buttons je nach Lock-Zustand erscheinen
-  if (typeof renderQualiRounds === 'function') renderQualiRounds();
-  if (typeof renderFinalRounds === 'function') renderFinalRounds();
+  // WICHTIG: Hier NICHT renderQualiRounds()/renderFinalRounds() aufrufen!
+  // updateInputState() wird am Ende von recalcAndRender() – also NACH
+  // attachInputListeners() – ausgeführt. Ein erneutes Rendern würde die
+  // Eingabefelder neu aufbauen und ihnen die gerade gebundenen Event-Listener
+  // wieder entziehen (→ Tippen löst kein Speichern aus).
   updateRepairBanner();
 }
 
