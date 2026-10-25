@@ -271,6 +271,7 @@ Gesamt Brutto = Quali Brutto gewertet + (Endrunde Brutto × 2)
 | v6.6 | **Kritischer Bugfix:** Scorekarten-Fotos liegen jetzt in eigenen Firestore-Dokumenten (`.../tournaments/{doc}/photos/{typ-ri}`) statt im Saison-Dokument. Zwei Base64-Fotos hatten das Saison-Dokument über das 1-MiB-Limit von Firestore gedrückt → ALLE weiteren Speichervorgänge (auch Scores) schlugen fehl. Automatische Migration vorhandener Inline-Fotos beim Laden. Saisonwechsel flusht ausstehenden Save. **Firestore-Regeln angepasst** (Subcollections per `{rest=**}`). SW-Cache v30 |
 | v6.7 | Reparatur-Banner „🔧 Jetzt reparieren" (nur entsperrt sichtbar, wenn noch Inline-Fotos im Saison-Dokument liegen) → löst die Foto-Auslagerung zuverlässig manuell aus, unabhängig vom Snapshot-Timing; SW-Cache v31 |
 | v6.9 | **Eigentlicher Bugfix Speichern:** `updateInputState()` rief (seit v6.4) am Ende von `recalcAndRender()` erneut die Render-Funktionen auf und baute damit die Eingabefelder NEU – direkt nachdem `attachInputListeners()` die Event-Listener gebunden hatte. Dadurch verloren alle Score-Felder ihre Listener → Tippen löste kein Speichern mehr aus. Re-Render aus `updateInputState()` entfernt; Lock-Toggle rendert jetzt sauber über `recalcAndRender()`. SW-Cache v34 |
+| v6.9.1 | Debug-Log und 🐞-Button wieder entfernt (Diagnose abgeschlossen). Reparatur-Banner bleibt als unsichtbares Sicherheitsnetz. SW-Cache v35 |
 
 ---
 
