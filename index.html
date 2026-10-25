@@ -979,7 +979,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2027';
-const APP_VERSION = '6.1';
+const APP_VERSION = '6.2';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1143,7 +1143,8 @@ function pickRoundPhoto(roundType, ri) {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
-  input.capture = 'environment'; // iPhone: direkt Kamera anbieten
+  // KEIN capture-Attribut: iOS zeigt dann die Auswahl
+  // "Fotomediathek / Foto aufnehmen / Dateien"
   input.onchange = async () => {
     const file = input.files && input.files[0];
     if (!file) return;
