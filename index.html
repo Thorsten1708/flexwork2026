@@ -371,14 +371,29 @@
   .chart-card canvas { max-height: 280px; }
 
   /* ---- ZUSATZSTATISTIK (Birdies, Ladies, 3-Putt, Striche) ---- */
+  /* Kopfzeile: Zusatzstatistik-Toggle (links) + Scorekarten-Button (rechts) */
+  .zusatz-bar {
+    display: flex; align-items: stretch;
+    background: #f0f4f8; border-top: 1px solid var(--border);
+  }
   .zusatz-toggle {
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    width: 100%; padding: 8px; margin: 0;
-    background: #f0f4f8; border: none; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: flex-start; gap: 6px;
+    flex: 1; min-width: 0; padding: 8px 10px; margin: 0;
+    background: transparent; border: none;
     color: #555; font-size: 12px; font-weight: 600; font-family: inherit;
-    cursor: pointer; transition: background 0.15s;
+    cursor: pointer; transition: background 0.15s; text-align: left;
   }
   .zusatz-toggle:hover { background: #e4ebf2; }
+  .zusatz-photo-slot {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 8px 5px 0; flex-shrink: 0;
+  }
+  /* Foto-Button in der Zusatzzeile: dunkel statt weiss-auf-rot (heller Hintergrund) */
+  .zusatz-photo-slot .photo-btn {
+    background: #e2e8f0; border: 1px solid #c4ccd6; color: #333;
+    margin-left: 0;
+  }
+  .zusatz-photo-slot .photo-btn:hover { background: #d4dde8; }
   .zusatz-panel { display: none; padding: 8px 0; background: #fafcff; border-top: 1px solid var(--border); }
   .zusatz-panel.open { display: block; }
   .zusatz-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -998,7 +1013,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2027';
-const APP_VERSION = '6.3';
+const APP_VERSION = '6.4';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -2235,9 +2250,21 @@ function buildZusatzPanel(type, ri, round) {
   ensureZusatzFields(round);
   const wrap = document.createElement('div');
 
+  // Kopfzeile: Zusatzstatistik-Toggle (links) + Scorekarten-Button (rechts)
+  const bar = document.createElement('div');
+  bar.className = 'zusatz-bar';
+
   const toggle = document.createElement('button');
   toggle.className = 'zusatz-toggle';
   toggle.innerHTML = '📊 Zusatzstatistik <span class="zusatz-badge-icons">(Birdies · Ladies · 3-Putt · Striche)</span> ▾';
+
+  const photoSlot = document.createElement('div');
+  photoSlot.className = 'zusatz-photo-slot';
+  photoSlot.id = `photo-slot-${type}-${ri}`;
+  photoSlot.innerHTML = getPhotoButtonsHtml(type, ri, round);
+
+  bar.appendChild(toggle);
+  bar.appendChild(photoSlot);
 
   const panel = document.createElement('div');
   panel.className = 'zusatz-panel';
@@ -2290,7 +2317,7 @@ function buildZusatzPanel(type, ri, round) {
     });
   });
 
-  wrap.appendChild(toggle);
+  wrap.appendChild(bar);
   wrap.appendChild(panel);
   return wrap;
 }
@@ -2308,6 +2335,9 @@ function updateZusatzPanel(type, ri, round) {
       }
     });
   });
+  // Foto-Slot aktualisieren (Lock-Zustand / Foto vorhanden kann sich geaendert haben)
+  const slot = document.getElementById(`photo-slot-${type}-${ri}`);
+  if (slot) slot.innerHTML = getPhotoButtonsHtml(type, ri, round);
 }
 
 function renderQualiRounds() {
@@ -2369,8 +2399,7 @@ function renderQualiRounds() {
         const w = wKey ? weatherCache[wKey] : null;
         const weatherHtml = wKey ? `${getWeatherBadge(w, wKey)}` : '';
         const unfixBtn = isUnlocked ? `<button class="unfix-round-btn" data-qi="${ri}" title="Fixierung aufheben (Datum/Name korrigieren)">🔓 Entfixieren</button>` : '';
-        const photoBtns = getPhotoButtonsHtml('quali', ri, round);
-        header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span>${weatherHtml}<span class="round-date">${round.date}</span>${photoBtns}${unfixBtn}${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}`;
+        header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span>${weatherHtml}<span class="round-date">${round.date}</span>${unfixBtn}${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}`;
         const unfixBtnEl = header.querySelector('.unfix-round-btn');
         if (unfixBtnEl) {
           unfixBtnEl.addEventListener('click', e => {
@@ -2389,12 +2418,10 @@ function renderQualiRounds() {
         const dateVal = round.date === 'tt.mm.26' ? '' : round.date;
         const hasData = isRoundPlayed(round);
         const fixBtn = (isUnlocked && hasData) ? `<button class="fix-round-btn" data-qi="${ri}" title="Runde fixieren">✅ Fixieren</button>` : '';
-        const photoBtns = getPhotoButtonsHtml('quali', ri, round);
         header.innerHTML = `
           <span class="round-name">${ri+1}.</span>
           <input type="text" placeholder="Platzname" value="${nameVal}" data-qi="${ri}" data-field="name" style="flex:1;margin:0 8px;">
           <input type="text" placeholder="tt.mm.jj" value="${dateVal}" data-qi="${ri}" data-field="date" style="width:90px;">
-          ${photoBtns}
           ${fixBtn}
           ${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}
         `;
@@ -2506,8 +2533,7 @@ function renderFinalRounds() {
     const wKey = (isoDate && coords) ? `${isoDate}_${coords.lat}_${coords.lon}` : null;
     const w = wKey ? weatherCache[wKey] : null;
     const weatherHtml = wKey ? `${getWeatherBadge(w, wKey)}` : '';
-    const photoBtns = getPhotoButtonsHtml('final', ri, round);
-    header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span>${weatherHtml}<span class="round-date">${round.date}</span>${photoBtns}`;
+    header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span>${weatherHtml}<span class="round-date">${round.date}</span>`;
     card.appendChild(header);
 
     const tableWrap2 = document.createElement('div');
