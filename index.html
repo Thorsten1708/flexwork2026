@@ -102,13 +102,13 @@
   }
   .card-header input[type=text]::placeholder { color: rgba(255,255,255,0.6); }
   .card-header input[type=text]:focus { background: rgba(255,255,255,0.3); }
-  .fix-round-btn {
+  .fix-round-btn, .unfix-round-btn {
     background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.6);
     color: white; border-radius: 6px; padding: 3px 10px; font-size: 12px;
     font-weight: 700; font-family: inherit; cursor: pointer; white-space: nowrap;
     flex-shrink: 0; margin-left: 6px; transition: background 0.15s;
   }
-  .fix-round-btn:hover { background: rgba(255,255,255,0.4); }
+  .fix-round-btn:hover, .unfix-round-btn:hover { background: rgba(255,255,255,0.4); }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   .col-spieler { width: 50%; text-align: left; }
   .col-score { width: 25%; text-align: center; }
@@ -953,7 +953,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2027';
-const APP_VERSION = '6.0';
+const APP_VERSION = '6.1';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -2187,7 +2187,21 @@ function renderQualiRounds() {
         const wKey = (isoDate && coords) ? `${isoDate}_${coords.lat}_${coords.lon}` : null;
         const w = wKey ? weatherCache[wKey] : null;
         const weatherHtml = wKey ? `${getWeatherBadge(w, wKey)}` : '';
-        header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span>${weatherHtml}<span class="round-date">${round.date}</span>${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}`;
+        const unfixBtn = isUnlocked ? `<button class="unfix-round-btn" data-qi="${ri}" title="Fixierung aufheben (Datum/Name korrigieren)">🔓 Entfixieren</button>` : '';
+        header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span>${weatherHtml}<span class="round-date">${round.date}</span>${unfixBtn}${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}`;
+        const unfixBtnEl = header.querySelector('.unfix-round-btn');
+        if (unfixBtnEl) {
+          unfixBtnEl.addEventListener('click', e => {
+            e.stopPropagation();
+            const qi = parseInt(e.target.dataset.qi);
+            const r = state.qualiRounds[qi];
+            if (confirm(`Fixierung von "${r.name}" (${r.date}) aufheben?\n\nName und Datum werden danach wieder bearbeitbar.`)) {
+              state.qualiRounds[qi].fixed = false;
+              saveState();
+              renderQualiRounds();
+            }
+          });
+        }
       } else {
         const nameVal = round.name === 'tbd' ? '' : round.name;
         const dateVal = round.date === 'tt.mm.26' ? '' : round.date;
