@@ -1013,7 +1013,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2027';
-const APP_VERSION = '6.4';
+const APP_VERSION = '6.5';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -1120,6 +1120,13 @@ const DEFAULT_FINAL_ROUNDS = [
 ];
 
 // ---- FIRESTORE PERSISTENCE ----
+// Verzögertes Speichern beim Tippen (iOS-'change'-Problem absichern)
+let debouncedSaveTimer = null;
+function scheduleDebouncedSave() {
+  clearTimeout(debouncedSaveTimer);
+  debouncedSaveTimer = setTimeout(() => { saveState(); }, 800);
+}
+
 function saveState() {
   isSaving = true;
   // Sicherheits-Timeout: isSaving nach max. 5s zurücksetzen
@@ -3467,6 +3474,20 @@ document.getElementById('appVersion').textContent = APP_VERSION;
 initSeasonSelector();
 startListener();
 
+// Ausstehenden Save sofort ausführen, wenn die App in den Hintergrund geht
+// oder geschlossen wird (iOS beendet PWAs, bevor der Debounce-Timer feuert).
+function flushPendingSave() {
+  if (debouncedSaveTimer) {
+    clearTimeout(debouncedSaveTimer);
+    debouncedSaveTimer = null;
+    saveState();
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushPendingSave();
+});
+window.addEventListener('pagehide', flushPendingSave);
+
 function attachInputListeners() {
   const allInputs = Array.from(document.querySelectorAll('input[data-type]'));
 
@@ -3487,6 +3508,11 @@ function attachInputListeners() {
       }
       // Nur Summaries + Chart neu rendern, nicht die Eingabe-Karten
       recalcSummariesOnly();
+      // WICHTIG: Auch beim Tippen verzögert speichern.
+      // Auf iOS/Safari feuert 'change' bei Zahlenfeldern oft nicht zuverlässig
+      // (z.B. wenn man die App wechselt/neu lädt ohne das Feld zu verlassen) –
+      // sonst geht die Eingabe verloren.
+      scheduleDebouncedSave();
     });
 
     // Speichern + vollständiger Re-render beim Verlassen des Feldes

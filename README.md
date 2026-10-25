@@ -264,6 +264,7 @@ Gesamt Brutto = Quali Brutto gewertet + (Endrunde Brutto × 2)
 | v6.2 | Foto-Auswahl: iOS zeigt jetzt Fotomediathek + Kamera + Dateien (capture-Attribut entfernt); Foto-Funktion für alle Quali-Runden inkl. Bad Griesbach–Uttlau bestätigt; SW-Cache v26 |
 | v6.3 | Scorekarten-Button im Header mobil nur als Icon (🖼️/📷) → wird nicht mehr abgeschnitten; Foto-Viewer scroll-/zoombar in voller Breite mit Dreh-Button; SW-Cache v27 |
 | v6.4 | Scorekarten-Button aus dem Header in die Zusatzstatistik-Zeile verschoben: „Zusatzstatistik…" linksbündig, Foto-/🖼️-Button rechtsbündig → mehr Platz, nichts mehr abgeschnitten; Uttlau zeigt Button jetzt korrekt; SW-Cache v28 |
+| v6.5 | Bugfix Dateneingabe: Score-Änderungen werden jetzt auch beim Tippen verzögert gespeichert (debounced) + beim App-Wechsel/Schließen sofort geflusht. Zuvor gingen auf iOS Eingaben verloren, wenn das 'change'-Event des Zahlenfelds nicht feuerte (Wert sprang nach Reload zurück); SW-Cache v29 |
 
 ---
 
