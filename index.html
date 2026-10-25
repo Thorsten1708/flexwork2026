@@ -109,6 +109,32 @@
     flex-shrink: 0; margin-left: 6px; transition: background 0.15s;
   }
   .fix-round-btn:hover, .unfix-round-btn:hover { background: rgba(255,255,255,0.4); }
+  .photo-btn {
+    background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.6);
+    color: white; border-radius: 6px; padding: 3px 10px; font-size: 12px;
+    font-weight: 700; font-family: inherit; cursor: pointer; white-space: nowrap;
+    flex-shrink: 0; margin-left: 6px; transition: background 0.15s;
+  }
+  .photo-btn:hover { background: rgba(255,255,255,0.4); }
+  .photo-btn-del { padding: 3px 7px; }
+  /* Vollbild-Overlay fuer Scorekarten-Foto */
+  .photo-overlay {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.85); align-items: center; justify-content: center; padding: 16px;
+  }
+  .photo-overlay-inner {
+    background: #111; border-radius: 10px; max-width: 95vw; max-height: 92vh;
+    display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  }
+  .photo-overlay-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; color: #fff; font-size: 14px; font-weight: 600; gap: 12px;
+  }
+  .photo-close {
+    background: none; border: none; color: #fff; font-size: 20px; cursor: pointer;
+    line-height: 1; padding: 0 4px;
+  }
+  .photo-overlay-inner img { max-width: 95vw; max-height: 80vh; object-fit: contain; display: block; }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   .col-spieler { width: 50%; text-align: left; }
   .col-score { width: 25%; text-align: center; }
@@ -978,6 +1004,9 @@ function updateInputState() {
   document.querySelectorAll('input[type=number], input[type=text]').forEach(inp => {
     inp.disabled = !isUnlocked;
   });
+  // Runden neu rendern, damit Foto-/Fixier-Buttons je nach Lock-Zustand erscheinen
+  if (typeof renderQualiRounds === 'function') renderQualiRounds();
+  if (typeof renderFinalRounds === 'function') renderFinalRounds();
 }
 
 // ---- TOAST ----
@@ -1071,6 +1100,122 @@ function saveState() {
       console.error('Firestore save error:', err);
       isSaving = false;
     });
+}
+
+// ---- SCOREKARTEN-FOTO ----
+// Foto wird clientseitig verkleinert/komprimiert und als Base64-String
+// direkt am Runden-Objekt (round.photo) gespeichert -> landet via saveState()
+// in Firestore. Ein Foto pro Runde. Hochladen/Entfernen nur entsperrt,
+// Ansehen fuer alle.
+
+// Bild auf max. Kantenlaenge verkleinern und als JPEG komprimieren
+function compressImageFile(file, maxEdge = 1400, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxEdge) {
+          height = Math.round(height * maxEdge / width);
+          width = maxEdge;
+        } else if (height > maxEdge) {
+          width = Math.round(width * maxEdge / height);
+          height = maxEdge;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Foto fuer eine Runde aufnehmen/auswaehlen
+function pickRoundPhoto(roundType, ri) {
+  if (!isUnlocked) { showToast('🔒 Erst entsperren zum Bearbeiten'); return; }
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment'; // iPhone: direkt Kamera anbieten
+  input.onchange = async () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    showToast('📷 Foto wird verarbeitet…');
+    try {
+      let dataUrl = await compressImageFile(file, 1400, 0.7);
+      // Fallback: falls > ~800 KB, staerker komprimieren (Firestore-Limit 1 MB/Dokument)
+      if (dataUrl.length > 800000) dataUrl = await compressImageFile(file, 1100, 0.55);
+      if (dataUrl.length > 950000) { alert('Foto ist zu groß. Bitte ein kleineres Bild wählen.'); return; }
+      const arr = roundType === 'quali' ? state.qualiRounds : state.finalRounds;
+      arr[ri].photo = dataUrl;
+      saveState();
+      showToast('✅ Scorekarte gespeichert');
+      roundType === 'quali' ? renderQualiRounds() : renderFinalRounds();
+    } catch (e) {
+      console.error('Foto-Fehler:', e);
+      alert('Das Foto konnte nicht verarbeitet werden.');
+    }
+  };
+  input.click();
+}
+
+// Foto einer Runde entfernen
+function removeRoundPhoto(roundType, ri) {
+  if (!isUnlocked) { showToast('🔒 Erst entsperren zum Bearbeiten'); return; }
+  const arr = roundType === 'quali' ? state.qualiRounds : state.finalRounds;
+  const r = arr[ri];
+  if (confirm(`Scorekarten-Foto von "${r.name}" entfernen?`)) {
+    delete arr[ri].photo;
+    saveState();
+    showToast('🗑️ Foto entfernt');
+    roundType === 'quali' ? renderQualiRounds() : renderFinalRounds();
+  }
+}
+
+// Foto im Vollbild-Overlay anzeigen
+function viewRoundPhoto(roundType, ri) {
+  const arr = roundType === 'quali' ? state.qualiRounds : state.finalRounds;
+  const r = arr[ri];
+  if (!r || !r.photo) return;
+  let overlay = document.getElementById('photo-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'photo-overlay';
+    overlay.className = 'photo-overlay';
+    overlay.addEventListener('click', () => { overlay.style.display = 'none'; });
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div class="photo-overlay-inner" onclick="event.stopPropagation()">
+      <div class="photo-overlay-head">
+        <span>📷 ${r.name} · ${r.date}</span>
+        <button class="photo-close" onclick="document.getElementById('photo-overlay').style.display='none'">✕</button>
+      </div>
+      <img src="${r.photo}" alt="Scorekarte ${r.name}">
+    </div>`;
+  overlay.style.display = 'flex';
+}
+
+// Button(s) fuer den Runden-Header je nach Zustand erzeugen
+function getPhotoButtonsHtml(roundType, ri, round) {
+  const hasPhoto = !!round.photo;
+  let html = '';
+  if (hasPhoto) {
+    html += `<button class="photo-btn" onclick="event.stopPropagation(); viewRoundPhoto('${roundType}', ${ri})" title="Scorekarte ansehen">🖼️ Scorekarte</button>`;
+    if (isUnlocked) {
+      html += `<button class="photo-btn photo-btn-del" onclick="event.stopPropagation(); removeRoundPhoto('${roundType}', ${ri})" title="Foto entfernen">🗑️</button>`;
+    }
+  } else if (isUnlocked) {
+    html += `<button class="photo-btn" onclick="event.stopPropagation(); pickRoundPhoto('${roundType}', ${ri})" title="Scorekarte fotografieren">📷 Foto</button>`;
+  }
+  return html;
 }
 
 // Stellt sicher, dass jede Runde die Zusatzstatistik-Arrays hat (Birdies, Ladies, 3-Putt, Striche)
@@ -2188,7 +2333,8 @@ function renderQualiRounds() {
         const w = wKey ? weatherCache[wKey] : null;
         const weatherHtml = wKey ? `${getWeatherBadge(w, wKey)}` : '';
         const unfixBtn = isUnlocked ? `<button class="unfix-round-btn" data-qi="${ri}" title="Fixierung aufheben (Datum/Name korrigieren)">🔓 Entfixieren</button>` : '';
-        header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span>${weatherHtml}<span class="round-date">${round.date}</span>${unfixBtn}${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}`;
+        const photoBtns = getPhotoButtonsHtml('quali', ri, round);
+        header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span>${weatherHtml}<span class="round-date">${round.date}</span>${photoBtns}${unfixBtn}${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}`;
         const unfixBtnEl = header.querySelector('.unfix-round-btn');
         if (unfixBtnEl) {
           unfixBtnEl.addEventListener('click', e => {
@@ -2207,10 +2353,12 @@ function renderQualiRounds() {
         const dateVal = round.date === 'tt.mm.26' ? '' : round.date;
         const hasData = isRoundPlayed(round);
         const fixBtn = (isUnlocked && hasData) ? `<button class="fix-round-btn" data-qi="${ri}" title="Runde fixieren">✅ Fixieren</button>` : '';
+        const photoBtns = getPhotoButtonsHtml('quali', ri, round);
         header.innerHTML = `
           <span class="round-name">${ri+1}.</span>
           <input type="text" placeholder="Platzname" value="${nameVal}" data-qi="${ri}" data-field="name" style="flex:1;margin:0 8px;">
           <input type="text" placeholder="tt.mm.jj" value="${dateVal}" data-qi="${ri}" data-field="date" style="width:90px;">
+          ${photoBtns}
           ${fixBtn}
           ${isEmpty ? '<span class="collapse-hint">▸ Tippen zum Öffnen</span>' : ''}
         `;
@@ -2322,7 +2470,8 @@ function renderFinalRounds() {
     const wKey = (isoDate && coords) ? `${isoDate}_${coords.lat}_${coords.lon}` : null;
     const w = wKey ? weatherCache[wKey] : null;
     const weatherHtml = wKey ? `${getWeatherBadge(w, wKey)}` : '';
-    header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span>${weatherHtml}<span class="round-date">${round.date}</span>`;
+    const photoBtns = getPhotoButtonsHtml('final', ri, round);
+    header.innerHTML = `<span class="round-name">${ri+1}. ${round.name}</span>${weatherHtml}<span class="round-date">${round.date}</span>${photoBtns}`;
     card.appendChild(header);
 
     const tableWrap2 = document.createElement('div');

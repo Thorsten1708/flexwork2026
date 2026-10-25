@@ -260,6 +260,7 @@ Gesamt Brutto = Quali Brutto gewertet + (Endrunde Brutto × 2)
 | v5.2 | ✅ Fixieren-Button: gespielte Runden direkt in der App fixieren ohne Chat/Code-Änderung; Bugfix JS-Strukturfehler |
 | v5.4 | Saison 2027 (Standard-Einstieg, PIN 2027); Endstand-Kompakttabelle (Plätze 1–4, nur Netto); Zusatzstatistik-Erfassung + Auswertung (Birdies, Ladies, 3-Putt, Striche) ab 2027; SW-Cache v18 |
 | v6.0 | Zusatzstatistik nach gewählter Saison (Gesamt / Saison / Platz, untereinander); Streicher erst ab 2 Runden; Endrunde umbenannt in Race2Munich (dynamisch mit Saisonjahr); Endstand-Spaltenköpfe gekürzt; Panel-Werte bei Saisonwechsel korrekt; SW-Cache v24 |
+| v6.1 | 🔓 Entfixieren-Button: Datum/Name fixierter Runden korrigierbar (entsperrt); 📷 Scorekarten-Foto pro Runde (Kamera/Mediathek, clientseitig komprimiert, in Firestore gespeichert), für alle als 🖼️-Button aufrufbar, Bearbeiten nur entsperrt; SW-Cache v25 |
 
 ---
 
