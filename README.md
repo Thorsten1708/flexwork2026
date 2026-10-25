@@ -262,6 +262,7 @@ Gesamt Brutto = Quali Brutto gewertet + (Endrunde Brutto × 2)
 | v6.0 | Zusatzstatistik nach gewählter Saison (Gesamt / Saison / Platz, untereinander); Streicher erst ab 2 Runden; Endrunde umbenannt in Race2Munich (dynamisch mit Saisonjahr); Endstand-Spaltenköpfe gekürzt; Panel-Werte bei Saisonwechsel korrekt; SW-Cache v24 |
 | v6.1 | 🔓 Entfixieren-Button: Datum/Name fixierter Runden korrigierbar (entsperrt); 📷 Scorekarten-Foto pro Runde (Kamera/Mediathek, clientseitig komprimiert, in Firestore gespeichert), für alle als 🖼️-Button aufrufbar, Bearbeiten nur entsperrt; SW-Cache v25 |
 | v6.2 | Foto-Auswahl: iOS zeigt jetzt Fotomediathek + Kamera + Dateien (capture-Attribut entfernt); Foto-Funktion für alle Quali-Runden inkl. Bad Griesbach–Uttlau bestätigt; SW-Cache v26 |
+| v6.3 | Scorekarten-Button im Header mobil nur als Icon (🖼️/📷) → wird nicht mehr abgeschnitten; Foto-Viewer scroll-/zoombar in voller Breite mit Dreh-Button; SW-Cache v27 |
 
 ---
 
