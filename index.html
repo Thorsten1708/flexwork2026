@@ -1050,7 +1050,7 @@ function initSeasonSelector() {
 let isUnlocked = false;
 let isSaving = false;
 const CORRECT_PIN = '2027';
-const APP_VERSION = '6.8';
+const APP_VERSION = '6.8.1';
 
 function toggleLock() {
   if (isUnlocked) {
@@ -3659,6 +3659,7 @@ function attachInputListeners() {
     // Sofortige Neuberechnung beim Tippen – KEIN DOM-Rebuild (kein recalcAndRender)
     // damit der Fokus nicht verloren geht
     inp.addEventListener('input', e => {
+      dbgLog(`✏️ input ${e.target.dataset.type}-${e.target.dataset.ri} ${e.target.dataset.score} = ${e.target.value} (unlocked=${isUnlocked})`);
       if (!isUnlocked) return;
       const type = e.target.dataset.type;
       const ri = parseInt(e.target.dataset.ri);
@@ -3681,6 +3682,7 @@ function attachInputListeners() {
 
     // Speichern + vollständiger Re-render beim Verlassen des Feldes
     inp.addEventListener('change', e => {
+      dbgLog(`🔚 change ${e.target.dataset.type}-${e.target.dataset.ri} ${e.target.dataset.score} = ${e.target.value} (unlocked=${isUnlocked})`);
       if (!isUnlocked) return;
       const type = e.target.dataset.type;
       const ri = parseInt(e.target.dataset.ri);
