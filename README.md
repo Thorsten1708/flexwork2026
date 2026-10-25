@@ -269,6 +269,7 @@ Gesamt Brutto = Quali Brutto gewertet + (Endrunde Brutto × 2)
 | v6.4 | Scorekarten-Button aus dem Header in die Zusatzstatistik-Zeile verschoben: „Zusatzstatistik…" linksbündig, Foto-/🖼️-Button rechtsbündig → mehr Platz, nichts mehr abgeschnitten; Uttlau zeigt Button jetzt korrekt; SW-Cache v28 |
 | v6.5 | Bugfix Dateneingabe: Score-Änderungen werden jetzt auch beim Tippen verzögert gespeichert (debounced) + beim App-Wechsel/Schließen sofort geflusht. Zuvor gingen auf iOS Eingaben verloren, wenn das 'change'-Event des Zahlenfelds nicht feuerte (Wert sprang nach Reload zurück); SW-Cache v29 |
 | v6.6 | **Kritischer Bugfix:** Scorekarten-Fotos liegen jetzt in eigenen Firestore-Dokumenten (`.../tournaments/{doc}/photos/{typ-ri}`) statt im Saison-Dokument. Zwei Base64-Fotos hatten das Saison-Dokument über das 1-MiB-Limit von Firestore gedrückt → ALLE weiteren Speichervorgänge (auch Scores) schlugen fehl. Automatische Migration vorhandener Inline-Fotos beim Laden. Saisonwechsel flusht ausstehenden Save. **Firestore-Regeln angepasst** (Subcollections per `{rest=**}`). SW-Cache v30 |
+| v6.7 | Reparatur-Banner „🔧 Jetzt reparieren" (nur entsperrt sichtbar, wenn noch Inline-Fotos im Saison-Dokument liegen) → löst die Foto-Auslagerung zuverlässig manuell aus, unabhängig vom Snapshot-Timing; SW-Cache v31 |
 
 ---
 
